@@ -1,0 +1,28 @@
+{
+    "name": "Spotify Web Extension",
+    "description": "Control the Spotify Web player from any tab",
+    "browser_action": {
+	"default_icon": {
+	    "19": "icons/spot-19.png",
+	    "38": "icons/spot-38.png"
+	},
+	"default_popup": "popup.html",
+	"default_title": "Spotify Web Player"
+    },
+    "icons": {
+	"128": "icons/spot-128.png",
+	"48": "icons/spot-48.png",
+	"16": "icons/spot-16.png"
+    },
+    "content_scripts": [ {
+	"js": [ "js/play.spotify.com.content_script.js" ],
+	"matches": [ "https://play.spotify.com/*" ]
+    } ],
+    "permissions": ["notifications"],
+    "manifest_version": 2,
+    "background": {
+	"persistent": true,
+	"scripts": [ "js/background.js" ]
+    },
+    "version": "0.0.1"
+}

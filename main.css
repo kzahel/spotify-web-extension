@@ -1,0 +1,56 @@
+body {
+  color: rgb(48, 57, 66);
+  font-family: Ubuntu, Arial, sans-serif;
+  font-size: 14px;
+}
+
+.hidden {
+  display: none;
+}
+
+.options-block {
+  margin-bottom: 8px;
+}
+
+.option-title {
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.profile-option {
+  white-space: nowrap;
+}
+
+input[type="password"], input[type="text"] {
+  border: 1px solid #777;
+  border-radius: 2px;
+  padding: 2px 3px 2px 3px;
+  width: 180px;
+}
+
+#password-line {
+  white-space: nowrap;
+}
+
+#password-yes {
+  color: green;
+  font-weight: bold;
+  font-size: 120%;
+}
+
+#password-no {
+  color: red;
+  font-weight: bold;
+  font-size: 120%;
+}
+
+#generated-password {
+  color: #008;
+  font-family: monospace;
+}
+
+#buttons {
+  text-align: center;
+  white-space: nowrap;
+}
+
