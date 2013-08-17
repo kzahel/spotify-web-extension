@@ -29,8 +29,6 @@ PortConnections.prototype = {
             // type, windowid "tab", "infobar", "notification", or "popup"
             var views = chrome.extension.getViews()
             console.log('new port added, views now', views);
-
-
         } else {
             console.log('unrecognized chrome extension message',port);
             port.disconnect()
