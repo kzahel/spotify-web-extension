@@ -14,14 +14,14 @@
 	"48": "icons/spot-48.png",
 	"16": "icons/spot-16.png"
     },
+    "options_page": "options.html",
+    "web_accessible_resources": [ "js/common.js", "js/play.spotify.com.inject.js", "js/all.inject.js" ],
     "content_scripts": [ {
 	"js": [ "js/common.js", "js/play.spotify.com.content_script.js" ],
 	"matches": [ "*://play.spotify.com/*"]
-    }
-    ],
-    "web_accessible_resources": [ "js/common.js", "js/play.spotify.com.inject.js", "js/all.inject.js" ],
+    } ],
     "permissions": ["*://play.spotify.com/*"],
-    "optional_permissions": ["notifications","contextMenus","<all_urls>"],
+    "optional_permissions": ["notifications","contextMenus","<all_urls>", "tabs"],
     "manifest_version": 2,
     "background": {
 	"persistent": true,

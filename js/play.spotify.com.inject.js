@@ -16,7 +16,6 @@
         return goodframe
     }
 
-
     function next_track() {
         var r = new Spotify.Bridge.Responder();
         r.trigger('player_skip_to_next', [{id:'extension'}]);
@@ -29,9 +28,6 @@
         })
     }
 
-
-
-
     function send_to_content_script(msg) {
 
         var customEvent = document.createEvent('Event');
@@ -42,7 +38,6 @@
             hiddenDiv.dispatchEvent(customEvent);
         }
     }
-
 
     send_to_content_script(JSON.stringify( { sender: "web page injected script" } ) )
 })();

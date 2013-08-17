@@ -23,7 +23,6 @@ port.onMessage.addListener(function(msg) {
 
 document.addEventListener("DOMContentLoaded", function() {
 
-
     var btn = document.querySelector('#add-permissions');
 
     //chrome.app.getDetails()
@@ -32,13 +31,16 @@ document.addEventListener("DOMContentLoaded", function() {
 	// Permissions must be requested from inside a user gesture, like a button's
 	// click handler.
 	chrome.permissions.request({
-	    permissions: [],
-	    origins: ['http://*/*','https://*/*']
+	    permissions: ["tabs"],
+	    origins: ["<all_urls>"]
 	}, function(granted) {
 	    // The callback argument will be true if the user granted the permissions.
 	    if (granted) {
+
+                port.postMessage("granted all permissions")
 		console.log('permission granted!!!');
 	    } else {
+                port.postMessage("failed to grant permissions")
 		console.log('permission deeeenied!');
 	    }
 	});
