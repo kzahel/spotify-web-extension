@@ -25,11 +25,11 @@
     ],
     "web_accessible_resources": [ "js/common.js", "js/play.spotify.com.inject.js", "js/all.inject.js" ],
     "permissions": ["*://play.spotify.com/*"],
-    "optional_permissions": ["notifications"],
+    "optional_permissions": ["notifications","<all_urls>"],
     "manifest_version": 2,
     "background": {
 	"persistent": true,
 	"scripts": [ "js/common.js", "js/background.js" ]
     },
-    "version": "0.0.2"
+    "version": "0.0.3"
 }
