@@ -16,17 +16,16 @@
     },
     "content_scripts": [ {
 	"js": [ "js/common.js", "js/play.spotify.com.content_script.js" ],
-	"matches": [ "https://play.spotify.com/*",
-		     "http://play.spotify.com/*"
-		   ]
+	"matches": [ "*://play.spotify.com/*"]
     }, {
 	"js": [ "js/common.js", "js/all.content_script.js" ],
-	"matches": [ "https://*/*", "http://*/*" ]
+	"matches": [ "<all_urls>" ],
+        "excludes": [ "*://play.spotify.com/*" ]
     }
     ],
     "web_accessible_resources": [ "js/common.js", "js/play.spotify.com.inject.js", "js/all.inject.js" ],
-    "permissions": ["notifications"],
-    "optional_permissions": ["http://*/*", "https://*/*"],
+    "permissions": ["*://play.spotify.com/*"],
+    "optional_permissions": ["notifications"],
     "manifest_version": 2,
     "background": {
 	"persistent": true,

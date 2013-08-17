@@ -23,7 +23,12 @@ port.onMessage.addListener(function(msg) {
 
 document.addEventListener("DOMContentLoaded", function() {
 
-    document.querySelector('#add-permissions').addEventListener('click', function(event) {
+
+    var btn = document.querySelector('#add-permissions');
+
+    //chrome.app.getDetails()
+
+    btn.addEventListener('click', function(event) {
 	// Permissions must be requested from inside a user gesture, like a button's
 	// click handler.
 	chrome.permissions.request({

@@ -21,3 +21,9 @@ s.onload = function() {
   this.parentNode.removeChild(this);
 };
 document.body.appendChild(s);
+
+
+document.getElementById('myCustomEventDiv').addEventListener('myCustomEvent', function() {
+    var eventData = document.getElementById('myCustomEventDiv').innerText;
+    port.postMessage({message: "myCustomEvent", values: eventData});
+});
