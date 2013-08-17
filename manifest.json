@@ -31,6 +31,5 @@
 	"persistent": true,
 	"scripts": [ "js/common.js", "js/background.js" ]
     },
-    "key":"MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC1+ZLgXzMsaXy5inNB1/2YGxgBcaDcEME4+E4vXUdkXn98NKzCgDa5DtG1Gp3Mp2e2qK9C902R2sr4/UsRwrtODcNy0nW+nZaE1FeoRJfChJnweKrPhtSEJAhWA0cl//3ViDp6fEx3nnwFzn+5d40hhKqBvfQBJuAEJzjdh+7sDQIDAQAB",
-    "version": "0.0.1"
+    "version": "0.0.2"
 }
