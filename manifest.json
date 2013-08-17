@@ -25,7 +25,7 @@
     ],
     "web_accessible_resources": [ "js/common.js", "js/play.spotify.com.inject.js", "js/all.inject.js" ],
     "permissions": ["*://play.spotify.com/*"],
-    "optional_permissions": ["notifications","<all_urls>"],
+    "optional_permissions": ["notifications","<all_urls>","contextMenus"],
     "manifest_version": 2,
     "background": {
 	"persistent": true,
