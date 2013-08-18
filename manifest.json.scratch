@@ -11,3 +11,9 @@
 	"matches": [ "*://play.spotify.com/*"]
     }
     ], // manually do this now
+
+
+    "content_scripts": [ {
+	"js": [ "js/common.js", "js/www.jstorrent.com.content_script.js" ],
+	"matches": [ "*://www.jstorrent.com/*"]
+    } ], // cant trust this to run on e.g. page reload :-(
