@@ -53,6 +53,8 @@
     }
 
 
+    var _cache = {}
+
     // this is being added TWICE sometimes... ?
     window.addEventListener('message', function(evt) {
         //HANDLE API REQUEST MESSAGE        this.port.postMessage( { requestid: requestid, cc: config.pagename, payload: msg } )
@@ -75,6 +77,21 @@
 
                     frame.require('$api/models', function(models) {
                         models.player.load(['playing']).done( function(current) {
+                            var response = {
+                                info: current
+                            };
+                            respond_to_api_message( request, response );
+                        })
+                    })
+
+                } else if (payload.command == 'get_rootlist') {
+
+
+
+                    var frame = window.frames[payload.framenum]
+
+                    frame.require('$api/models', function(models) {
+                        models.Playlist.fromURI(['']).done( function(current) {
                             var response = {
                                 info: current
                             };

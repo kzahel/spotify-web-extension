@@ -1,3 +1,5 @@
+console.log("%cINJECTED CONTENT SCRIPT!", (window._already_executed ? "background:#FFC; color:#AAA" : "background:#FF0; color:#000"), window.location.href, updateInfo, window._already_executed); // updateInfo passed in from chrome.tabs.onUpdateAA
+
 function ignoremessage(type, evt) {
     // NOISY shitty messages that we want to ignore (specific for
     // play.spotify.com cross-iframe postMessage communication
@@ -89,6 +91,7 @@ if (window._already_executed) {
     var lastBGPID = _already_executed[2]
     var msg = ['already executed a content script from', _already_executed]
     if (lastBGPID != BGPID) {
+        console.log('background event page reloaded! setup new port!')
         msg = ['already executed, however this is new BGPID...']
         console.assert( ! window.port )
         window.port = setup_background_port()
@@ -97,7 +100,7 @@ if (window._already_executed) {
         msg;
     }
 } else {
-    console.log(config.pagename, 'content script injected', window.location.origin);
+
 
 /*
     chrome.runtime.onMessage.addListener(messageRecv);
@@ -124,6 +127,8 @@ if (window._already_executed) {
 
 // this is a bunch of noisy shit that's not very useful for this page.
 // but could be nice if you want to look at all the postMessages...
+
+
 
   // frames may not be ready yet. so don't do this.
     var frame = null;

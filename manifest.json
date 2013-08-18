@@ -1,5 +1,6 @@
 {
     "name": "Spotify Web Extension",
+    "key": "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC1+ZLgXzMsaXy5inNB1/2YGxgBcaDcEME4+E4vXUdkXn98NKzCgDa5DtG1Gp3Mp2e2qK9C902R2sr4/UsRwrtODcNy0nW+nZaE1FeoRJfChJnweKrPhtSEJAhWA0cl//3ViDp6fEx3nnwFzn+5d40hhKqBvfQBJuAEJzjdh+7sDQIDAQAB",
     "description": "Control the Spotify Web player from any tab",
     "browser_action": {
 	"default_icon": {
@@ -15,13 +16,13 @@
 	"16": "icons/spot-16.png"
     },
     "options_page": "options.html",
-    "web_accessible_resources": [ "js/common.js", "js/play.spotify.com.inject.js", "js/all.inject.js" ],
-    "permissions": ["*://play.spotify.com/*"],
+    "web_accessible_resources": [ "js/common.js", "js/www.jstorrent.com.inject.js", "js/all.inject.js" ],
+    "permissions": ["*://www.jstorrent.com/*"],
     "optional_permissions": ["notifications","contextMenus","<all_urls>", "tabs"],
     "manifest_version": 2,
     "background": {
 	"persistent": false,
 	"scripts": [ "js/common.js", "js/background.js" ]
     },
-    "version": "0.0.7"
+    "version": "0.0.8"
 }

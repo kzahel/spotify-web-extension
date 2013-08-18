@@ -1,9 +1,6 @@
 var BGPID = Math.floor(Math.random() * Math.pow(2,31))
-
 console.assert( chrome.app.getDetails().id == config.extension_id )
-
-console.log('background page loaded with BGPID',BGPID)
-console.log("%cFUN COLORED CONSOLE LOG!","background: #2B2; color: #00000")
+console.log("%cBackground page load!","background: #2B2; color: #00000", BGPID)
 
 var logconfig = {
     injected: true,
@@ -11,8 +8,6 @@ var logconfig = {
 }
 
 chrome.runtime.onInstalled.addListener( function(install_data) {
-    // reload the current spotify page so that the content script can run
-
     console.log('chrome runtime onInstalled',install_data, 'running version:', chrome.app.getDetails().version)
     
     if (install_data.reason == "install" ||
@@ -28,7 +23,7 @@ function SpotifyWebConnection(port, manager) {
     this.manager = manager;
     port.onMessage.addListener( this.handle_message.bind(this) )
     port.onDisconnect.addListener( manager.handle_disconnect.bind(manager) )
-    this.send_to_content( { BGPID:BGPID, message: "background page received your connection. Thanks :-)", data: new Uint8Array([1,2,3,4]) } )
+    //this.send_to_content( { BGPID:BGPID, message: "background page received your connection. Thanks :-)", data: new Uint8Array([1,2,3,4]) } )
 }
 
 SpotifyWebConnection.prototype = {
@@ -76,17 +71,16 @@ function PortConnections() {
     this._active_play_tab = null;
 }
 
-
 PortConnections.prototype = {
     handle_connection: function(port) {
         if (port.sender && port.sender.id == chrome.app.getDetails().id) {
 
-            var tabId = port.tabId_ || port.sender.tab.id;
+            var tabId = port.sender.tab.id;
 
             console.assert( tabId );
 
             console.assert(port.name);
-            console.log('received chrome port connection from', port.name, port.portId_);
+            console.log('content script connection from', port.name+'.js, url:', port.sender.url,'on tab',port.sender.tab.id);
 
             var spwebconn = new SpotifyWebConnection(port, this);
 
@@ -103,7 +97,7 @@ PortConnections.prototype = {
                     this._active_play_tab = spwebconn
                 }
             }
-            console.log('new port added total connections now', this._connected);
+            console.log('Total content script connections now', this._connected);
         } else {
             console.log('unrecognized chrome extension message',port);
             port.disconnect()
@@ -138,10 +132,7 @@ PortConnections.prototype = {
 
 
 var ports = new PortConnections;
-
-
 chrome.runtime.onConnect.addListener( ports.handle_connection.bind(ports) )
-
 
 chrome.permissions.getAll( function(a) {
     console.log("permissions",a);
@@ -149,27 +140,11 @@ chrome.permissions.getAll( function(a) {
 
 
 // on background page load, do this stuff...
-
-
 // INJECT into our content script
 chrome.tabs.query( { url: "*://"+config.pagename+"/*" }, function(tabs) {
-    // this is preventing the manifest from injecting??
-
-    console.log('background page loaded: found pagename tabs',tabs, 'of length',tabs.length)
+    console.log('Found',config.pagename,tabs.length,'tabs',tabs)
     tabs.forEach( function(tab) {
-        // first put in common.js ?
-
-
         inject_content_scripts(tab)
-/*
-        chrome.tabs.executeScript( tab.id, { code: "var BGPID = " + BGPID + ";BGPID;" }, function(results0) {
-            chrome.tabs.executeScript( tab.id,  { file: 'js/common.js' }, function(results) {
-                chrome.tabs.executeScript( tab.id,  { file: 'js/'+config.pagename+'.content_script.js' }, function(results2) {
-                    console.log(config.pagename+ ' programmatic content script injection results (executeScript) tabid', tab.id, results0, results, results2)
-                } )
-            } )
-        })
-*/
     });
 });
 
@@ -180,9 +155,10 @@ chrome.tabs.onCreated.addListener( function(tab) {
     console.log('chrome.tabs.onCreated', tab);
 });
 
+function inject_content_scripts(tab, updateInfo) {
+    /* called each time a chrome.tabs.tabUpdate is triggered (basically every single type of navigation, even sub-iframes */
 
-function inject_content_scripts(tab) { // {origin:window.location.origin,hostname:window.location.hostname}
-    chrome.tabs.executeScript( tab.id, { code: "var BGPID = " + BGPID + ";[window.location.origin,window.location.hostname];" }, function(results0) {
+    chrome.tabs.executeScript( tab.id, { code: "var updateInfo="+JSON.stringify(updateInfo)+";var BGPID = " + BGPID + ";[window.location.origin,window.location.hostname];" }, function(results0) {
 
         if (results0 === undefined) {
             console.log('unable to execute content script')
@@ -190,7 +166,7 @@ function inject_content_scripts(tab) { // {origin:window.location.origin,hostnam
             return
         } else {
             var tabinfo = results0[0];
-            console.log('tab info:',tabinfo);
+            console.log('content script returns info:',tabinfo);
 
             var origin = tabinfo[0]
             var hostname = tabinfo[1]
@@ -198,11 +174,11 @@ function inject_content_scripts(tab) { // {origin:window.location.origin,hostnam
             chrome.tabs.executeScript( tab.id,  { file: 'js/common.js' }, function(results1) {
                 if (hostname == config.pagename) {
                     chrome.tabs.executeScript( tab.id, { file: 'js/'+config.pagename+'.content_script.js' }, function(resultsa) {
-                        console.log('injected content script pagename', resultsa);
+                        console.log(config.pagename,'content_script injected', resultsa);
                     })
                 } else {
                     chrome.tabs.executeScript( tab.id, { file: 'js/all.content_script.js' }, function(resultsb) {
-                        console.log('injected content all script', resultsb)
+                        console.log('all.content_script injected', resultsb)
                     })
                 }
             })
@@ -211,20 +187,17 @@ function inject_content_scripts(tab) { // {origin:window.location.origin,hostnam
 }
 
 chrome.tabs.onUpdated.addListener( function(tabId, changeInfo, tab) {
-    console.log('tab change',tabId,changeInfo.status,changeInfo.url);
-    //console.log('tab is',tab)
-
-    // this is preventing our config.pagename tabs from executing on page refresh?
-
-    inject_content_scripts(tab)
+    var updateInfo = {event:'onUpdated',changeInfo:changeInfo,tabInfo:tab.status}
+    // console.log('tab change',tabId,changeInfo.status,changeInfo.url);
+    inject_content_scripts(tab, updateInfo)
 })
-
 
 
 function SpotifyWebAPI() {
     this._requests = {}
     this._requestctr = 1;
     this._timeout_interval = 40000;
+    this._playerframenum = 0;
 }
 SpotifyWebAPI.prototype = {
     get_conn: function() {
@@ -261,9 +234,13 @@ SpotifyWebAPI.prototype = {
     get_playing: function(framenum, cb) {
         console.assert(typeof framenum == 'number')
         this.send_to_webpage( { framenum: framenum, command: 'getplayerstuff' }, cb )
+    },
+    get_rootlist: function(cb) {
+        this.send_to_webpage( { framenum: this._playerframenum, command: 'get_rootlist' }, cb )
     }
 }
 
+// nextSong(), playpause(), getSongPlayed(), getArt(), getQueue(), etc
 var api = new SpotifyWebAPI;
 
 
