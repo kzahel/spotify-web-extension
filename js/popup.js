@@ -51,7 +51,7 @@ function bind_permission_upgrade() {
 
     btn.addEventListener('click', function(event) {
 	chrome.permissions.request({
-	    permissions: ["tabs","notifications","contextMenus"],
+	    permissions: ["notifications","contextMenus"],
 	    origins: ["<all_urls>"]
 	}, function(granted) {
 	    // The callback argument will be true if the user granted the permissions.

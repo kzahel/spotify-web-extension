@@ -1,6 +1,5 @@
 {
     "name": "Spotify Web Extension",
-    "key": "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC1+ZLgXzMsaXy5inNB1/2YGxgBcaDcEME4+E4vXUdkXn98NKzCgDa5DtG1Gp3Mp2e2qK9C902R2sr4/UsRwrtODcNy0nW+nZaE1FeoRJfChJnweKrPhtSEJAhWA0cl//3ViDp6fEx3nnwFzn+5d40hhKqBvfQBJuAEJzjdh+7sDQIDAQAB",
     "description": "Control the Spotify Web player from any tab",
     "browser_action": {
 	"default_icon": {
@@ -24,5 +23,5 @@
 	"persistent": true,
 	"scripts": [ "js/common.js", "js/background.content.js", "js/background.extension.js", "js/background.js" ]
     },
-    "version": "0.0.8"
+    "version": "0.0.9"
 }

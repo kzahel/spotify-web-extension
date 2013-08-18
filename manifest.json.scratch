@@ -1,3 +1,8 @@
+
+    "key": "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC1+ZLgXzMsaXy5inNB1/2YGxgBcaDcEME4+E4vXUdkXn98NKzCgDa5DtG1Gp3Mp2e2qK9C902R2sr4/UsRwrtODcNy0nW+nZaE1FeoRJfChJnweKrPhtSEJAhWA0cl//3ViDp6fEx3nnwFzn+5d40hhKqBvfQBJuAEJzjdh+7sDQIDAQAB",
+
+// PUT this back in for develop mode, but when packaging, have to take it out :-\
+
     "key":"MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC1+ZLgXzMsaXy5inNB1/2YGxgBcaDcEME4+E4vXUdkXn98NKzCgDa5DtG1Gp3Mp2e2qK9C902R2sr4/UsRwrtODcNy0nW+nZaE1FeoRJfChJnweKrPhtSEJAhWA0cl//3ViDp6fEx3nnwFzn+5d40hhKqBvfQBJuAEJzjdh+7sDQIDAQAB",
 
 , {
