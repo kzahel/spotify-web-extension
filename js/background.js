@@ -7,6 +7,9 @@ var logconfig = {
     other: false
 }
 
+var content_conns = new ContentScriptConnections;
+var extension_conns = new ExtensionConnections;
+
 chrome.runtime.onInstalled.addListener( function(install_data) {
     console.log('chrome runtime onInstalled',install_data, 'running version:', chrome.app.getDetails().version)
     
@@ -15,132 +18,19 @@ chrome.runtime.onInstalled.addListener( function(install_data) {
     }
 });
 
-window.spwebconn_id = 0;
-
-function SpotifyWebConnection(port, manager) {
-    this._id = window.spwebconn_id++;
-    this.port = port;
-    this.manager = manager;
-    port.onMessage.addListener( this.handle_message.bind(this) )
-    port.onDisconnect.addListener( manager.handle_disconnect.bind(manager) )
-    //this.send_to_content( { BGPID:BGPID, message: "background page received your connection. Thanks :-)", data: new Uint8Array([1,2,3,4]) } )
-}
-
-SpotifyWebConnection.prototype = {
-    handle_message: function(msg) {
-        if (msg.message && msg.message.msgevt) {
-            var data = msg.message.msgevt.data
-            if (typeof data == "string") {
-                // comes from content script postMessage, try to JSON parse and shit
-                try {
-                    data = JSON.parse(data)
-                } catch(e) { }
-                //console.log('handle message','SpotifyWebConnection'+this._id, msg.message.msgevt.type, data);
-            } else {
-
-                if (data.sender == "extension" && 
-                    data.injected_script == config.pagename + '.inject.js' &&
-                    data.extension_id == config.extension_id) {
-                    
-                    console.log('received message from main page javascript context',data);
-
-                    if (data.message && data.message.payload && data.message.requestid) {
-                        api.handle_webpage_api_response( data.message )
-                    }
-
-                }
-
-            }
-        } else {
-            //console.log('handle message','SpotifyWebConnection'+this._id, msg);
-        }
-    },
-    send_to_content: function(msg) {
-        this.port.postMessage( msg )
-    },
-    send_api_message_to_webpage: function(requestid, msg) {
-        // special type of message
-        this.port.postMessage( { requestid: requestid, cc: config.pagename, payload: msg } )
+chrome.runtime.onConnect.addListener( function(port) {
+    if (port.sender.tab) {
+        content_conns.handle_connection(port)
+    } else {
+        extension_conns.handle_connection(port)
     }
-}
+})
 
-function PortConnections() {
-    this._tab_connections = {}
-    this._connected = 0;
-    this._play_tabs = {};
-    this._active_play_tab = null;
-}
-
-PortConnections.prototype = {
-    handle_connection: function(port) {
-        if (port.sender && port.sender.id == chrome.app.getDetails().id) {
-
-            var tabId = port.sender.tab.id;
-
-            console.assert( tabId );
-
-            console.assert(port.name);
-            console.log('content script connection from', port.name+'.js, url:', port.sender.url,'on tab',port.sender.tab.id);
-
-            var spwebconn = new SpotifyWebConnection(port, this);
-
-            console.assert( ! this._tab_connections[tabId] )
-
-            this._tab_connections[tabId] = spwebconn
-            this._connected++;
-            console.assert( Object.keys(this._tab_connections).length == this._connected );
-
-            if (port.name == config.pagename + '.content_script') {
-                this._play_tabs[ tabId ] = spwebconn
-
-                if (! this._active_play_tab) {
-                    this._active_play_tab = spwebconn
-                }
-            }
-            console.log('Total content script connections now', this._connected);
-        } else {
-            console.log('unrecognized chrome extension message',port);
-            port.disconnect()
-        }
-    },
-    handle_disconnect: function(port) {
-        var tabId = port.sender.tab.id
-        console.log('content script port disconnected', tabId, port);
-        console.assert( tabId )
-
-        if (port.name == config.pagename + '.content_script') {
-            console.assert( this._tab_connections[tabId] )
-            delete this._play_tabs[tabId]
-            if (Object.keys( this._play_tabs ).length == 0) {
-                this._active_play_tab = null;
-            }
-        }
-        console.assert(this._tab_connections[tabId])
-        delete this._tab_connections[tabId]
-        this._connected--;
-    },
-    get: function(type) {
-        if (type == 'content_script') {
-            return this._active_play_tab;
-        } else if (type == 'popup') {
-            return this._connections['popup']
-        } else {
-            console.assert(false);
-        }
-    }
-}
-
-
-var ports = new PortConnections;
-chrome.runtime.onConnect.addListener( ports.handle_connection.bind(ports) )
 
 chrome.permissions.getAll( function(a) {
     console.log("permissions",a);
 });
 
-
-// on background page load, do this stuff...
-// INJECT into our content script
 chrome.tabs.query( { url: "*://"+config.pagename+"/*" }, function(tabs) {
     console.log('Found',config.pagename,tabs.length,'tabs',tabs)
     tabs.forEach( function(tab) {
@@ -161,7 +51,7 @@ function inject_content_scripts(tab, updateInfo) {
     chrome.tabs.executeScript( tab.id, { code: "var updateInfo="+JSON.stringify(updateInfo)+";var BGPID = " + BGPID + ";[window.location.origin,window.location.hostname];" }, function(results0) {
 
         if (results0 === undefined) {
-            console.log('unable to execute content script')
+            console.log('Unable to execute content script')
             // no permission to execute content scripts
             return
         } else {
@@ -201,7 +91,7 @@ function SpotifyWebAPI() {
 }
 SpotifyWebAPI.prototype = {
     get_conn: function() {
-        return ports.get('content_script')
+        return content_conns.get()
     },
     handle_request_timeout: function(requestid) {
         console.log('API request timeout',requestid)
