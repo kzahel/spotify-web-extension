@@ -1,7 +1,37 @@
-function ignoremessage(evt) {
+function ignoremessage(type, evt) {
+    // NOISY shitty messages that we want to ignore
     if (evt.data == '{"type": "execute_deferreds"}') {
         return true;
     }
+}
+
+function forward_window_events(type, win) {
+    // type is "root" or "frameX", or TBD:"external"?
+    win.addEventListener('message', function(evt) {
+
+        if (ignoremessage(type, evt)) {
+            return
+        }
+
+        var sendup = {
+            type: type,
+            data: evt.data,
+            origin: evt.origin
+        };
+
+        port.postMessage({message: {info:"proxied/filtered from browser page", jsorigin:window.location.href, msgevt: sendup}})
+    });
+}
+
+
+function inject_config() {
+    var inlinecode = config.injected_config_varname + ' = ' + JSON.stringify(config);
+    var s = document.createElement("script");
+    s.textContent = inlinecode;
+    s.onload = function() {
+        this.parentNode.removeChild(this);
+    };
+    document.body.appendChild(s);
 }
 
 if (window._already_executed) {
@@ -10,16 +40,14 @@ if (window._already_executed) {
     msg;
 } else {
 
-    console.log('play.spotify.com content script injected', window.location.origin);
-
+    console.log(config.pagename, 'content script injected', window.location.origin);
 
     chrome.runtime.onMessage.addListener(messageRecv);
     function messageRecv(msg) {
         console.log('content script received message from chrome.runtime',msg);
     }
 
-
-    var port = chrome.runtime.connect({name: "play.spotify.com.content_script"});
+    var port = chrome.runtime.connect({name: config.pagename+".content_script"});
 
     port.postMessage({message: "content_script_loaded"});
     port.onMessage.addListener(function(msg) {
@@ -27,26 +55,29 @@ if (window._already_executed) {
     });
 
     var s = document.createElement("script");
-    s.src = chrome.extension.getURL("js/play.spotify.com.inject.js");
+
+    inject_config();
+
+    s.src = chrome.extension.getURL("js/"+config.pagename+".inject.js");
     s.onload = function() {
         this.parentNode.removeChild(this);
     };
     document.body.appendChild(s);
 
-    window.addEventListener('message', function(evt) {
 
+    forward_window_events('root',window)
 
-        if (ignoremessage(evt)) {
-            return
+    var frame = null;
+    for (var i=0; i<window.frames.length; i++) {
+
+        frame = window.frames[i];
+        if (frame.location.origin == window.location.origin) {
+            forward_window_events('frame'+i, frame);
         }
 
-        var sendup = {
-            data: evt.data,
-            origin: evt.origin
-        };
+        // DOM wont let us do this
+        // forward_window_events('external', window.frames[i]);
+    }
 
-        port.postMessage({message: {info:"proxied/filtered from browser page", jsorigin:window.location.href, msgevt: sendup}})
-    });
-
-    window._already_executed = ['play.content_script.js', window.location.origin]
+    window._already_executed = [config.pagename+'.content_script.js', window.location.origin]
 }

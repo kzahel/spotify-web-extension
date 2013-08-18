@@ -2,8 +2,8 @@ if (window._already_executed) {
     var msg = ['already executed a content script from ', _already_executed]
     console.log(msg);
     msg;
-} else if (window.location.hostname == 'play.spotify.com') {
-    var msg = 'dont execute all.content_script, this is play.spotify.com'
+} else if (window.location.hostname == config.pagename) {
+    var msg = 'dont execute all.content_script, this is ' + config.pagename
     console.log(msg);
     msg;
 } else {

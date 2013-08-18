@@ -1,8 +1,6 @@
 (function() {
-
-    window.addEventListener("message", function(evt) {
-        //console.log('injected script saw window messages', evt)
-    })
+    var injected_config_varname = '_____________config';
+    var config = window[injected_config_varname];
 
     function try_to_find_good_frame() {
         var goodframe = null;
@@ -28,7 +26,8 @@
         })
     }
 
-    function send_to_content_script(msg) {
+    function send_to_content_script_using_custom_event(msg) {
+        // this might be more secretive than window.postMessage, and have fewer side effects
 
         var customEvent = document.createEvent('Event');
         customEvent.initEvent('myCustomEvent', true, true);
@@ -39,5 +38,16 @@
         }
     }
 
-    send_to_content_script(JSON.stringify( { sender: "web page injected script" } ) )
+    function send_to_content_script(msg) {
+        window.postMessage({sender:"extension", 
+                            message: msg,
+                            injected_script: config.pagename + '.inject.js', 
+                            extension_id: config.extension_id}, 
+                           window.location.origin)
+    }
+
+    send_to_content_script("hello. extension successfully injected code into main javascript context");
+
+
+
 })();

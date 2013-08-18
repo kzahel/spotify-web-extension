@@ -1,24 +1,23 @@
-console.log('background page loaded')
-var PID = Math.floor(Math.random() * Math.pow(2,31))
+var BGPID = Math.floor(Math.random() * Math.pow(2,31))
+
+console.assert( chrome.app.getDetails().id == config.extension_id )
+
+console.log('background page loaded with BGPID',BGPID)
+console.log("%cFUN COLORED CONSOLE LOG!","background: #2B2; color: #00000")
+
+var logconfig = {
+    injected: true,
+    other: false
+}
 
 chrome.runtime.onInstalled.addListener( function(install_data) {
     // reload the current spotify page so that the content script can run
 
+    console.log('chrome runtime onInstalled',install_data, 'running version:', chrome.app.getDetails().version)
+    
     if (install_data.reason == "install" ||
         install_data.reason == "update" ) {     //"install", "update", or "chrome_update"
-
-
-        // doing this each time the background page loads, programmatically
-/*
-        chrome.tabs.query( { url: "*://play.spotify.com/*" }, function(tabs) {
-            console.log('found play tab',tabs)
-            tabs.forEach( function(tab) {
-                chrome.tabs.reload(tab.id)
-            });
-        });
-*/
     }
-
 });
 
 window.spwebconn_id = 0;
@@ -29,12 +28,33 @@ function SpotifyWebConnection(port, manager) {
     this.manager = manager;
     port.onMessage.addListener( this.handle_message.bind(this) )
     port.onDisconnect.addListener( manager.handle_disconnect.bind(manager) )
-    this.send_to_content( { message: "background page received your connection. Thanks :-)", data: new Uint8Array([1,2,3,4]) } )
+    this.send_to_content( { BGPID:BGPID, message: "background page received your connection. Thanks :-)", data: new Uint8Array([1,2,3,4]) } )
 }
 
 SpotifyWebConnection.prototype = {
     handle_message: function(msg) {
-        console.log('handle message','SpotifyWebConnection'+this._id, msg);
+        if (msg.message && msg.message.msgevt) {
+            var data = msg.message.msgevt.data
+            if (typeof data == "string") {
+                // comes from content script postMessage, try to JSON parse and shit
+                try {
+                    data = JSON.parse(data)
+                } catch(e) { }
+                //console.log('handle message','SpotifyWebConnection'+this._id, msg.message.msgevt.type, data);
+            } else {
+
+                console.log('DATA!',data);
+/*
+                if (data.sender == "extension" && 
+                    data.injected_script == config.pagename + '.inject.js' &&
+                    data.extension_id == config.extension_id) {
+                    console.log('received message from main page javascript context',msgverbose);
+                }
+*/
+            }
+        } else {
+            //console.log('handle message','SpotifyWebConnection'+this._id, msg);
+        }
     },
     send_to_content: function(msg) {
         this.port.postMessage( msg )
@@ -58,7 +78,7 @@ PortConnections.prototype = {
             console.assert( tabId );
 
             console.assert(port.name);
-            console.log('received chrome extension message from', port.name, port.portId_);
+            console.log('received chrome port connection from', port.name, port.portId_);
 
             var spwebconn = new SpotifyWebConnection(port, this);
 
@@ -123,17 +143,23 @@ chrome.permissions.getAll( function(a) {
 
 // on background page load, do this stuff...
 
+
+// INJECT into our content script
 chrome.tabs.query( { url: "*://"+config.pagename+"/*" }, function(tabs) {
     console.log('background page loaded: found play tabs',tabs, 'of length',tabs.length)
     tabs.forEach( function(tab) {
         // first put in common.js ?
-        chrome.tabs.executeScript( tab.id,  { file: 'js/common.js' }, function(results) {
 
-            chrome.tabs.executeScript( tab.id,  { file: 'js/play.spotify.com.content_script.js' }, function(results2) {
-                console.log('injection results tabid', tab.id, results, results2)
+        chrome.tabs.executeScript( tab.id, { code: "var BGPID = " + BGPID + ";BGPID;" }, function(results0) {
+
+            chrome.tabs.executeScript( tab.id,  { file: 'js/common.js' }, function(results) {
+
+                chrome.tabs.executeScript( tab.id,  { file: 'js/'+config.pagename+'.content_script.js' }, function(results2) {
+                    console.log('injection results tabid', tab.id, results0, results, results2)
+                } )
+
             } )
-
-        } )
+        })
     });
 });
 
@@ -141,7 +167,7 @@ chrome.tabs.onUpdated.addListener( function(tabId, changeInfo, tab) {
     //console.log('tab change',tabId,changeInfo.status,changeInfo.url);
     //console.log('tab is',tab)
     chrome.tabs.executeScript( tab.id, { file: 'js/all.content_script.js' }, function(results) {
-        console.log('executed script')
+        console.log('tab executed script', tab.id, 'all.content_script', results)
     });
     
 })
