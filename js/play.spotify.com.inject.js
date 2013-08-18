@@ -1,6 +1,9 @@
 (function() {
     var injected_config_varname = '_____________config';
     var config = window[injected_config_varname];
+    console.assert(config) // this means the injection script ran twice! bad! huh?
+    delete window[injected_config_varname];
+
 
     function find_good_frames() {
         var goodframes = [];
@@ -49,20 +52,35 @@
                                   payload: payload } )
     }
 
+
+    // this is being added TWICE sometimes... ?
     window.addEventListener('message', function(evt) {
-        //HANDLE API MESSAGE        this.port.postMessage( { requestid: requestid, cc: config.pagename, payload: msg } )
+        //HANDLE API REQUEST MESSAGE        this.port.postMessage( { requestid: requestid, cc: config.pagename, payload: msg } )
 
         if (evt.source == window) { // from our own content script :-)
             if (evt.data.requestid && evt.data.cc && evt.data.payload) {
                 var request = evt.data
                 var payload = evt.data.payload
                 console.log('handling custom extension API message',payload.command,'with request id',evt.data.requestid);
-
                 if (payload.command == 'getframes') {
 
                     var frames = find_good_frames()
 
-                    respond_to_api_message( request, { info: "queried good frames and returning data :-)", numframes: frames.length } )
+                    respond_to_api_message( request, { info: "queried good frames and returning data :-)", 
+                                                       frames: frames.map( function(fi) { return [fi.num, fi.frame.location.pathname] }),
+                                                       numframes: frames.length })
+                } else if (payload.command == 'getplayerstuff') {
+
+                    var frame = window.frames[payload.framenum]
+
+                    frame.require('$api/models', function(models) {
+                        models.player.load(['playing']).done( function(current) {
+                            var response = {
+                                info: current
+                            };
+                            respond_to_api_message( request, response );
+                        })
+                    })
 
                 } else {
                     console.error('unrecognized API message',payload.command, evt);

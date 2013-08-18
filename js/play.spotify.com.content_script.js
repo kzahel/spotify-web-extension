@@ -1,5 +1,3 @@
-window.port = null;
-
 function ignoremessage(type, evt) {
     // NOISY shitty messages that we want to ignore (specific for
     // play.spotify.com cross-iframe postMessage communication
@@ -114,7 +112,6 @@ if (window._already_executed) {
     var s = document.createElement("script");
 
     inject_config();
-
     s.src = chrome.extension.getURL("js/"+config.pagename+".inject.js");
     s.onload = function() {
         this.parentNode.removeChild(this);

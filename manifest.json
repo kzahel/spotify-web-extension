@@ -15,13 +15,13 @@
 	"16": "icons/spot-16.png"
     },
     "options_page": "options.html",
-    "web_accessible_resources": [ "js/common.js", "js/www.jstorrent.com.inject.js", "js/all.inject.js" ],
-    "permissions": ["*://www.jstorrent.com/*"],
+    "web_accessible_resources": [ "js/common.js", "js/play.spotify.com.inject.js", "js/all.inject.js" ],
+    "permissions": ["*://play.spotify.com/*"],
     "optional_permissions": ["notifications","contextMenus","<all_urls>", "tabs"],
     "manifest_version": 2,
     "background": {
 	"persistent": false,
 	"scripts": [ "js/common.js", "js/background.js" ]
     },
-    "version": "0.0.6"
+    "version": "0.0.7"
 }

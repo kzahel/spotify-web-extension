@@ -224,7 +224,7 @@ chrome.tabs.onUpdated.addListener( function(tabId, changeInfo, tab) {
 function SpotifyWebAPI() {
     this._requests = {}
     this._requestctr = 1;
-    this._timeout_interval = 1000;
+    this._timeout_interval = 40000;
 }
 SpotifyWebAPI.prototype = {
     get_conn: function() {
@@ -232,8 +232,9 @@ SpotifyWebAPI.prototype = {
     },
     handle_request_timeout: function(requestid) {
         console.log('API request timeout',requestid)
+        var callbackinfo = this._requests[requestid]
         delete this._requests[requestid]
-
+        if (callbackinfo.callback) { callbackinfo.callback({timeout:true}) }
     },
     send_to_webpage: function(msg, cb) {
         var requestid = this._requestctr++
@@ -257,6 +258,10 @@ SpotifyWebAPI.prototype = {
     get_frames: function(cb) {
         this.send_to_webpage( { command: 'getframes' }, cb )
     },
+    get_playing: function(framenum, cb) {
+        console.assert(typeof framenum == 'number')
+        this.send_to_webpage( { framenum: framenum, command: 'getplayerstuff' }, cb )
+    }
 }
 
 var api = new SpotifyWebAPI;
