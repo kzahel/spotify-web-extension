@@ -2,16 +2,14 @@
     var injected_config_varname = '_____________config';
     var config = window[injected_config_varname];
 
-    function try_to_find_good_frame() {
-        var goodframe = null;
+    function find_good_frames() {
+        var goodframes = [];
         for (var i=0; i<window.frames.length; i++) {
-            console.log('frame',window.frames[i]);
             if (window.frames[i].location.origin) {
-                goodframe = window.frames[i]
-                break;
+                goodframes.push({num:i, frame: window.frames[i]})
             }
         }
-        return goodframe
+        return goodframes
     }
 
     function next_track() {
@@ -46,8 +44,38 @@
                            window.location.origin)
     }
 
-    send_to_content_script("hello. extension successfully injected code into main javascript context");
+    function respond_to_api_message(request, payload) {
+        send_to_content_script( { requestid: request.requestid,
+                                  payload: payload } )
+    }
+
+    window.addEventListener('message', function(evt) {
+        //HANDLE API MESSAGE        this.port.postMessage( { requestid: requestid, cc: config.pagename, payload: msg } )
+
+        if (evt.source == window) { // from our own content script :-)
+            if (evt.data.requestid && evt.data.cc && evt.data.payload) {
+                var request = evt.data
+                var payload = evt.data.payload
+                console.log('handling custom extension API message',payload.command,'with request id',evt.data.requestid);
+
+                if (payload.command == 'getframes') {
+
+                    var frames = find_good_frames()
+
+                    respond_to_api_message( request, { info: "queried good frames and returning data :-)", numframes: frames.length } )
+
+                } else {
+                    console.error('unrecognized API message',payload.command, evt);
+                }
+                
+
+            }
+        }
 
 
+
+
+
+    });
 
 })();

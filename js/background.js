@@ -43,14 +43,18 @@ SpotifyWebConnection.prototype = {
                 //console.log('handle message','SpotifyWebConnection'+this._id, msg.message.msgevt.type, data);
             } else {
 
-                console.log('DATA!',data);
-/*
                 if (data.sender == "extension" && 
                     data.injected_script == config.pagename + '.inject.js' &&
                     data.extension_id == config.extension_id) {
-                    console.log('received message from main page javascript context',msgverbose);
+                    
+                    console.log('received message from main page javascript context',data);
+
+                    if (data.message && data.message.payload && data.message.requestid) {
+                        api.handle_webpage_api_response( data.message )
+                    }
+
                 }
-*/
+
             }
         } else {
             //console.log('handle message','SpotifyWebConnection'+this._id, msg);
@@ -58,6 +62,10 @@ SpotifyWebConnection.prototype = {
     },
     send_to_content: function(msg) {
         this.port.postMessage( msg )
+    },
+    send_api_message_to_webpage: function(requestid, msg) {
+        // special type of message
+        this.port.postMessage( { requestid: requestid, cc: config.pagename, payload: msg } )
     }
 }
 
@@ -151,11 +159,9 @@ chrome.tabs.query( { url: "*://"+config.pagename+"/*" }, function(tabs) {
         // first put in common.js ?
 
         chrome.tabs.executeScript( tab.id, { code: "var BGPID = " + BGPID + ";BGPID;" }, function(results0) {
-
             chrome.tabs.executeScript( tab.id,  { file: 'js/common.js' }, function(results) {
-
                 chrome.tabs.executeScript( tab.id,  { file: 'js/'+config.pagename+'.content_script.js' }, function(results2) {
-                    console.log('injection results tabid', tab.id, results0, results, results2)
+                    console.log(config.pagename+ ' content script injection results tabid', tab.id, results0, results, results2)
                 } )
 
             } )
@@ -166,11 +172,56 @@ chrome.tabs.query( { url: "*://"+config.pagename+"/*" }, function(tabs) {
 chrome.tabs.onUpdated.addListener( function(tabId, changeInfo, tab) {
     //console.log('tab change',tabId,changeInfo.status,changeInfo.url);
     //console.log('tab is',tab)
-    chrome.tabs.executeScript( tab.id, { file: 'js/all.content_script.js' }, function(results) {
-        console.log('tab executed script', tab.id, 'all.content_script', results)
-    });
-    
+
+    chrome.tabs.executeScript( tab.id, { code: "var BGPID = " + BGPID + ";BGPID;" }, function(results0) {
+        chrome.tabs.executeScript( tab.id,  { file: 'js/common.js' }, function(results1) {
+            chrome.tabs.executeScript( tab.id, { file: 'js/all.content_script.js' }, function(results2) {
+                console.log('all. content script injection results tabid', tab.id, results0, results1, results2)
+            });
+        })
+    })
 })
+
+
+
+function SpotifyWebAPI() {
+    this._requests = {}
+    this._requestctr = 1;
+    this._timeout_interval = 1000;
+}
+SpotifyWebAPI.prototype = {
+    get_conn: function() {
+        return ports.get('content_script')
+    },
+    handle_request_timeout: function(requestid) {
+        console.log('API request timeout',requestid)
+        delete this._requests[requestid]
+
+    },
+    send_to_webpage: function(msg, cb) {
+        var requestid = this._requestctr++
+        var request_timeout = setTimeout( this.handle_request_timeout.bind(this, requestid), this._timeout_interval );
+        this._requests[requestid] = {callback:cb, timeout:request_timeout}
+        this.get_conn().send_api_message_to_webpage( requestid, msg )
+    },
+    handle_webpage_api_response: function(msg) {
+        console.log('SpotifyWebAPI handle response!',msg)
+        var callbackinfo = this._requests[msg.requestid]
+        console.assert( callbackinfo ) // response came back after timeout_interval
+        clearTimeout( callbackinfo.timeout )
+        delete this._requests[msg.requestid]
+        var cb = callbackinfo.callback;
+        if (cb) {
+            cb(msg.payload);
+        }
+    },
+    get_frames: function(cb) {
+        this.send_to_webpage( { command: 'getframes' }, cb )
+    },
+}
+
+var api = new SpotifyWebAPI;
+
 
 /*
 
