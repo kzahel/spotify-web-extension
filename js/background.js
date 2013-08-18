@@ -64,7 +64,11 @@ function inject_content_scripts(tab, updateInfo) {
             chrome.tabs.executeScript( tab.id,  { file: 'js/common.js' }, function(results1) {
                 if (hostname == config.pagename) {
                     chrome.tabs.executeScript( tab.id, { file: 'js/'+config.pagename+'.content_script.js' }, function(resultsa) {
-                        console.log(config.pagename,'content_script injected', resultsa);
+                        if (resultsa[0][0].match("already executed")) {
+                            console.log(config.pagename,'content_script: already injected')
+                        } else {
+                            console.log(config.pagename,'content_script injected', resultsa);
+                        }
                     })
                 } else {
                     chrome.tabs.executeScript( tab.id, { file: 'js/all.content_script.js' }, function(resultsb) {
@@ -91,7 +95,7 @@ function SpotifyWebAPI() {
 }
 SpotifyWebAPI.prototype = {
     get_conn: function() {
-        return content_conns.get()
+        return content_conns.get_active()
     },
     handle_request_timeout: function(requestid) {
         console.log('API request timeout',requestid)
@@ -103,6 +107,7 @@ SpotifyWebAPI.prototype = {
         var requestid = this._requestctr++
         var request_timeout = setTimeout( this.handle_request_timeout.bind(this, requestid), this._timeout_interval );
         this._requests[requestid] = {callback:cb, timeout:request_timeout}
+        console.log('requests',this._requests);
         var conn = this.get_conn()
         console.assert( conn )
         conn.send_api_message_to_webpage( requestid, msg )
@@ -110,6 +115,10 @@ SpotifyWebAPI.prototype = {
     handle_webpage_api_response: function(msg) {
         console.log('SpotifyWebAPI handle response!',msg)
         var callbackinfo = this._requests[msg.requestid]
+        if (! callbackinfo) {
+            console.log('WARNING -- duplicate response received :-(')
+            return
+        }
         console.assert( callbackinfo ) // response came back after timeout_interval
         clearTimeout( callbackinfo.timeout )
         delete this._requests[msg.requestid]
@@ -120,10 +129,10 @@ SpotifyWebAPI.prototype = {
     },
     get_frames: function(cb) {
         this.send_to_webpage( { command: 'getframes' }, cb )
+        // set this._playerframenum
     },
-    get_playing: function(framenum, cb) {
-        console.assert(typeof framenum == 'number')
-        this.send_to_webpage( { framenum: framenum, command: 'getplayerstuff' }, cb )
+    get_playing: function(cb) {
+        this.send_to_webpage( { framenum: this._playerframenum, command: 'getplayerstuff' }, cb )
     },
     get_rootlist: function(cb) {
         this.send_to_webpage( { framenum: this._playerframenum, command: 'get_rootlist' }, cb )
