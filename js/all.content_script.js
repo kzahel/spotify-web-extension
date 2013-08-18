@@ -8,18 +8,53 @@ if (window._already_executed) {
     msg;
 } else {
 
+
+    window.bg = null;
+    function get_background(cb) {
+        if (window.bg) { 
+            if (cb) { cb() }
+        } else {
+            chrome.runtime.getBackgroundPage( function(bgpage) {
+                bg = bgpage;
+                console.log('got background page',bg);
+                if (cb) { cb() }
+            })
+        }
+    }
+    //get_background();
+
     console.log('all.content_script injected', window.location.origin);
 
-
     document.body.addEventListener('click', function(evt) {
-        if (evt.target.tagName == 'A') {
-            if (evt.target.href.match('^spotify:')) {
-                console.log('you clicked on a spotify link yahhh')
-                if (! config.use_desktop_spotify) {
-                    evt.preventDefault(); // dont open with spotify desktop
-                }
+
+        var foundNode = null
+
+        var trynodes = [evt.target, evt.target.parentNode]
+        
+        for (var i=0; i<trynodes.length; i++) {
+            if (trynodes[i].tagName.toUpperCase() == 'A') {
+                foundNode = trynodes[i]
+                break;
             }
         }
+            
+        if (foundNode.href && foundNode.href.match('^spotify:')) {
+            console.log('you clicked on a spotify link yahhh')
+            if (! config.use_desktop_spotify) {
+                evt.preventDefault(); // dont open with spotify desktop
+
+                chrome.runtime.sendMessage({event:'protocol_click',
+                                            protocol:'spotify',
+                                            href:foundNode.href})
+            }
+        } else if (foundNode.href.match('^magnet:')) {
+            console.log('you clicked on a magnet link yahhh')
+            // TODO: is background page dead? send ALARM
+            chrome.runtime.sendMessage({event:'protocol_click',
+                                        protocol:'magnet',
+                                        href:foundNode.href})
+        }
+
 
     });
 

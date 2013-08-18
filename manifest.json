@@ -18,10 +18,11 @@
     "web_accessible_resources": [ "js/common.js", "js/play.spotify.com.inject.js", "js/all.inject.js" ],
     "permissions": ["*://play.spotify.com/*"],
     "optional_permissions": ["notifications","contextMenus","<all_urls>"],
+    "key": "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC1+ZLgXzMsaXy5inNB1/2YGxgBcaDcEME4+E4vXUdkXn98NKzCgDa5DtG1Gp3Mp2e2qK9C902R2sr4/UsRwrtODcNy0nW+nZaE1FeoRJfChJnweKrPhtSEJAhWA0cl//3ViDp6fEx3nnwFzn+5d40hhKqBvfQBJuAEJzjdh+7sDQIDAQAB",
     "manifest_version": 2,
     "background": {
 	"persistent": true,
-	"scripts": [ "js/common.js", "js/background.content.js", "js/background.extension.js", "js/background.js" ]
+	"scripts": [ "js/common.js", "js/background.content.js", "js/background.extension.js", "js/api.js", "js/background.js" ]
     },
     "version": "0.0.9"
 }
