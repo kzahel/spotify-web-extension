@@ -108,8 +108,17 @@ chrome.runtime.onMessage.addListener( function(msg) {
         if (msg.protocol == 'spotify') {
             var parts = msg.href.split(':')
             parts.shift(1)
+
             link = 'https://play.spotify.com/' + parts.join('/')
-            chrome.tabs.create( { url: link, active: true })
+
+            chrome.tabs.query( { url: "*://"+config.pagename+"/*" }, function(tabs) {
+                console.log('Found',config.pagename,tabs.length,'tabs',tabs)
+                if (tabs.length == 0) {
+                    chrome.tabs.create( { url: link, active: true })
+                } else {
+                    chrome.tabs.update( tabs[0].id, { url: link, active: true })
+                }
+            });
         }
     }
 })

@@ -6,7 +6,7 @@
 function SpotifyWebAPI() {
     this._requests = {}
     this._requestctr = 1;
-    this._timeout_interval = 40000;
+    this._timeout_interval = 2000;
     this._playerframenum = 0;
 }
 SpotifyWebAPI.prototype = {
@@ -17,7 +17,7 @@ SpotifyWebAPI.prototype = {
         console.log('API request timeout',requestid)
         var callbackinfo = this._requests[requestid]
         delete this._requests[requestid]
-        if (callbackinfo.callback) { callbackinfo.callback({timeout:true}) }
+        if (callbackinfo.callback) { callbackinfo.callback({error:true,timeout:true}) }
     },
     send_to_webpage: function(msg, cb) {
         var requestid = this._requestctr++
@@ -25,8 +25,11 @@ SpotifyWebAPI.prototype = {
         this._requests[requestid] = {callback:cb, timeout:request_timeout}
         console.log('requests',this._requests);
         var conn = this.get_conn()
-        console.assert( conn )
-        conn.send_api_message_to_webpage( requestid, msg )
+        if (! conn) {
+            cb({error:"no connection"})
+        } else {
+            conn.send_api_message_to_webpage( requestid, msg )
+        }
     },
     handle_webpage_api_response: function(msg) {
         console.log('SpotifyWebAPI handle response!',msg)

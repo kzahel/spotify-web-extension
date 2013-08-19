@@ -28,22 +28,29 @@ function populate_album_info(cb) {
         console.log('got background',bg)
         bg.api.get_playing( function(response) {
             console.log('get_playing response',response)
-            var track = response.info.track
-            var album = track.album
-            var artists = track.artists;
-            var image = track.images[1][1];
+            if (response.error) {
+                if ($("error").textContent.length < 2) {
+                    $("error").innerHTML = 'ERROR: ' + JSON.stringify(response) + '<a href="https://play.spotify.com" target="_blank">Open Spotify</a>'
+                }
+            } else {
+                $("error").innerHTML = ''
+                var track = response.info.track
+                var album = track.album
+                var artists = track.artists;
+                var image = track.images[1][1];
 
-            $("track-albumart").innerHTML = '<img src="'+image+'" />'
+                $("track-albumart").innerHTML = '<img src="'+image+'" />'
 
-            // UNSAFE UNSAFE use document.createTextNode or whatever
-            $("track-songtitle").innerHTML = '<a href="'+ track.uri + '">'+track.name+'</a>'
-            var h = [];
-            for (var i=0; i<artists.length; i++) {
-                h.push('<a href="'+ artists[i].uri + '">'+artists[i].name+'</a>')
+                // UNSAFE UNSAFE use document.createTextNode or whatever
+                $("track-songtitle").innerHTML = '<a href="'+ track.uri + '">'+track.name+'</a>'
+                var h = [];
+                for (var i=0; i<artists.length; i++) {
+                    h.push('<a href="'+ artists[i].uri + '">'+artists[i].name+'</a>')
+                }
+                h.push(JSON.stringify(response.playerState))
+
+                $("track-songinfo").innerHTML = h.join('');
             }
-            h.push(JSON.stringify(response.playerState))
-
-            $("track-songinfo").innerHTML = h.join('');
             if (cb) {cb()}
         })
     })
@@ -64,6 +71,10 @@ function bind_permission_upgrade() {
     var btn = document.querySelector('#add-permissions');
 
     btn.addEventListener('click', function(event) {
+
+        chrome.tabs.create({active:true, url:'options.html'})
+return
+
 	chrome.permissions.request({
 	    permissions: ["notifications","contextMenus"],
 	    origins: ["<all_urls>"]
