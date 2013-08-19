@@ -8,32 +8,19 @@ function ContentScriptConnection(port, manager) {
 }
 
 ContentScriptConnection.prototype = {
-    handle_message: function(msg) {
-        if (msg.message && msg.message.msgevt) {
-            var data = msg.message.msgevt.data
-            if (typeof data == "string") {
-                // comes from content script postMessage, try to JSON parse and shit
-                try {
-                    data = JSON.parse(data)
-                } catch(e) { }
-                //console.log('handle message','SpotifyWebConnection'+this._id, msg.message.msgevt.type, data);
-            } else {
+    handle_message: function(data) {
+        if (data.sender == "extension" && 
+            data.injected_script == config.pagename + '.inject.js' &&
+            data.extension_id == config.extension_id) {
+            
+            console.log('received message from main page javascript context',data);
 
-                if (data.sender == "extension" && 
-                    data.injected_script == config.pagename + '.inject.js' &&
-                    data.extension_id == config.extension_id) {
-                    
-                    console.log('received message from main page javascript context',data);
-
-                    if (data.message && data.message.payload && data.message.requestid) {
-                        api.handle_webpage_api_response( data.message )
-                    }
-
-                }
-
+            if (data.message && data.message.payload && data.message.requestid) {
+                api.handle_webpage_api_response( data.message )
             }
+
         } else {
-            console.log('unhandled content script message',msg);
+            console.log('unhandled message from content script',data)
         }
     },
     send_to_content: function(msg) {

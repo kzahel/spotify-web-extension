@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <link href="main.css" rel="stylesheet">
+
   <script src="js/common.js" type="text/javascript"></script>
+  <script src="js/ga.js" type="text/javascript"></script>
   <script src="js/options.js" type="text/javascript"></script>
 </head>
 
@@ -10,13 +11,30 @@
 
 <div style="width:400px">
 <h1>Options for Spotify Web Extension</h1>
+  <hr />
+  <div id="info-result"></div>
 
+<hr />
 <div>This extension can help your browser open "spotify:" links (see <a href="http://news.spotify.com/us/2008/01/14/linking-to-spotify/">linking to spotify</a>), but requires you grant extra permissions.</div>
 
-  <div id="info-result"></div>
-  <div id="buttons">
     <button id="add-permissions">Grant perission to handle spotify: links</button>
-  </div>
+
+<hr />
+
+<div>    We can also add a widget on youtube (to add to your playlist) (not yet implemented, only a permission grant)</div>
+    <button id="add-permissions-youtube">enable youtube fast linking</button>
+
+<hr />
+
+<div> Want to skip tracks with a keyboard shortcut? Try our <a target="_blank" href="https://chrome.google.com/webstore/detail/skip-track-spotify-web/cioodogigbffcemogihoifckgacjaakc">Skip Track</a> extension.</div>
+
+
+<hr />
+
+<div>Comments, suggestions? Please leave them on <a target="_blank" href="https://github.com/kzahel/spotify-web-extension">github project page</a>
+
+
+
 </div>
 
 </body>

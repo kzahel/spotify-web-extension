@@ -46,15 +46,45 @@ function restore_options() {
 //document.addEventListener('DOMContentLoaded', restore_options);
 //document.querySelector('#save').addEventListener('click', save_options);
 
+function bind_youtube_permission_upgrade() {
+    var btn = document.querySelector('#add-permissions-youtube');
+    btn.addEventListener('click', function(event) {
+	chrome.permissions.request({
+	    permissions: [],
+	    origins: ["*://www.youtube.com/*"]
+	}, function(granted) {
 
+            get_background( function() {
 
-function bind_permission_upgrade() {
+	        // The callback argument will be true if the user granted the permissions.
+	        if (granted) {
+                    _gaq.push(['_trackEvent', 'permission-youtube', 'granted']);
+                    document.getElementById('info-result').innerText = 'PERMISSION granted!'
+
+                    bg.on_new_permissions('youtube')
+
+//                    bg.postMessage("granted all permissions",bg.location.origin)
+		    console.log('permission granted!!!');
+	        } else {
+                    _gaq.push(['_trackEvent', 'permission-youtube', 'denied']);
+                    document.getElementById('info-result').innerText = 'PERMISSION not granted'
+
+//                    bg.postMessage("failed to grant permissions",bg.location.origin)
+		    console.log('permission deeeenied!');
+	        }
+            })
+	});
+    });
+
+}
+
+function bind_all_permission_upgrade() {
     var btn = document.querySelector('#add-permissions');
 
     btn.addEventListener('click', function(event) {
 
 	chrome.permissions.request({
-	    permissions: ["notifications","contextMenus"],
+	    permissions: [],
 	    origins: ["<all_urls>"]
 	}, function(granted) {
 
@@ -62,17 +92,18 @@ function bind_permission_upgrade() {
 
 	        // The callback argument will be true if the user granted the permissions.
 	        if (granted) {
-
+                    _gaq.push(['_trackEvent', 'permission-all_urls', 'granted']);
                     document.getElementById('info-result').innerText = 'PERMISSION granted!'
 
                     bg.on_new_permissions()
 
-                    bg.postMessage("granted all permissions",bg.location.origin)
+//                    bg.postMessage("granted all permissions",bg.location.origin)
 		    console.log('permission granted!!!');
 	        } else {
+                    _gaq.push(['_trackEvent', 'permission-all_urls', 'denied']);
                     document.getElementById('info-result').innerText = 'PERMISSION not granted'
 
-                    bg.postMessage("failed to grant permissions",bg.location.origin)
+//                    bg.postMessage("failed to grant permissions",bg.location.origin)
 		    console.log('permission deeeenied!');
 	        }
             })
@@ -82,5 +113,7 @@ function bind_permission_upgrade() {
 
 
 document.addEventListener("DOMContentLoaded", function() {
-    bind_permission_upgrade()
+    bind_all_permission_upgrade()
+    bind_youtube_permission_upgrade()
+    track_button_clicks()
 })

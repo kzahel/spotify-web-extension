@@ -30,27 +30,29 @@ if (window._already_executed) {
         var trynodes = [evt.target, evt.target.parentNode]
         
         for (var i=0; i<trynodes.length; i++) {
-            if (trynodes[i].tagName.toUpperCase() == 'A') {
+            if (trynodes[i] && trynodes[i].tagName.toUpperCase() == 'A') {
                 foundNode = trynodes[i]
                 break;
             }
         }
-            
-        if (foundNode.href && foundNode.href.match('^spotify:')) {
-            console.log('you clicked on a spotify link yahhh')
-            if (! config.use_desktop_spotify) {
-                evt.preventDefault(); // dont open with spotify desktop
-
+        if (foundNode) {
+            if (foundNode.href && foundNode.href.match('^spotify:')) {
+                console.log('you clicked on a spotify link yahhh')
+                if (! config.use_desktop_spotify) {
+                    evt.preventDefault(); // dont open with spotify desktop
+                    var msg = {event:'protocol_click',
+                               protocol:'spotify',
+                               href:foundNode.href}
+                    console.log('chrome.runtime.sendMessage',msg)
+                    chrome.runtime.sendMessage(msg)
+                }
+            } else if (foundNode.href.match('^magnet:')) {
+                console.log('you clicked on a magnet link yahhh')
+                // TODO: is background page dead? send ALARM
                 chrome.runtime.sendMessage({event:'protocol_click',
-                                            protocol:'spotify',
+                                            protocol:'magnet',
                                             href:foundNode.href})
             }
-        } else if (foundNode.href.match('^magnet:')) {
-            console.log('you clicked on a magnet link yahhh')
-            // TODO: is background page dead? send ALARM
-            chrome.runtime.sendMessage({event:'protocol_click',
-                                        protocol:'magnet',
-                                        href:foundNode.href})
         }
 
 

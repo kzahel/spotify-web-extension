@@ -11,7 +11,10 @@ var content_conns = new ContentScriptConnections;
 var extension_conns = new ExtensionConnections;
 
 chrome.runtime.onInstalled.addListener( function(install_data) {
-    console.log('chrome runtime onInstalled',install_data, 'running version:', chrome.app.getDetails().version)
+    var curver = chrome.app.getDetails().version
+    console.log('chrome runtime onInstalled',install_data, 'running version:', curver)
+
+    _gaq.push(['_trackEvent', 'onInstalled('+install_data.previousVersion + '->' + curver+')', install_data.reason]);
     
     if (install_data.reason == "install" ||
         install_data.reason == "update" ) {     //"install", "update", or "chrome_update"
@@ -27,20 +30,25 @@ chrome.runtime.onConnect.addListener( function(port) {
 })
 
 
-chrome.permissions.getAll( function(a) {
-    console.log("permissions",a);
-
-    chrome.tabs.query({}, function(tabs) {
-        tabs.forEach( function(tab) {
-            inject_content_scripts(tab)
+function on_permissions_change() {
+    var updateInfo = {event:'on_permissions_change',matchall:true}
+    chrome.permissions.getAll( function(a) {
+        console.log("new permissions",a);
+        chrome.tabs.query({}, function(tabs) {
+            tabs.forEach( function(tab,updateInfo) {
+                inject_content_scripts(tab)
+            })
         })
-    })
-});
+    });
+}
+
+on_permissions_change()
 
 chrome.tabs.query( { url: "*://"+config.pagename+"/*" }, function(tabs) {
     console.log('Found',config.pagename,tabs.length,'tabs',tabs)
+    var updateInfo = {pagematch:true, background_init:true}
     tabs.forEach( function(tab) {
-        inject_content_scripts(tab)
+        inject_content_scripts(tab, updateInfo)
     });
 });
 
@@ -51,12 +59,9 @@ chrome.tabs.onCreated.addListener( function(tab) {
     console.log('chrome.tabs.onCreated', tab);
 });
 
-function on_new_permissions() {
+function on_new_permissions() {  
     // new permissions were granted
-    chrome.permissions.getAll( function(a) {
-        console.log("new permissions :-)",a);
-        
-    });
+    on_permissions_change()
 }
 
 function inject_content_scripts(tab, updateInfo) {
@@ -101,15 +106,17 @@ chrome.tabs.onUpdated.addListener( function(tabId, changeInfo, tab) {
     inject_content_scripts(tab, updateInfo)
 })
 
+
 chrome.runtime.onMessage.addListener( function(msg) {
     // for listening all.content script 
     if (msg.event == 'protocol_click') {
         console.log("HANDLE PROTOCOL CLICK!",msg.href)
         if (msg.protocol == 'spotify') {
-            var parts = msg.href.split(':')
-            parts.shift(1)
+            var link = spotify_uri_to_web_link(msg.href)
 
-            link = 'https://play.spotify.com/' + parts.join('/')
+            // track spotify:album or whatever clicked
+
+            _gaq.push(['_trackEvent', 'spotify:'+msg.href.split(':')[1], 'clicked']);
 
             chrome.tabs.query( { url: "*://"+config.pagename+"/*" }, function(tabs) {
                 console.log('Found',config.pagename,tabs.length,'tabs',tabs)
@@ -119,19 +126,11 @@ chrome.runtime.onMessage.addListener( function(msg) {
                     chrome.tabs.update( tabs[0].id, { url: link, active: true })
                 }
             });
+
+
+
         }
     }
 })
 
 var api = new SpotifyWebAPI;
-
-
-/*
-
-TODO: handle injecting content scripts once we gain all tabs.
-
-use chrome.tabs permission somehow?
-can use: chrome.tabs.onUpdated to see URL navigation changes :-)
-
-http://stackoverflow.com/questions/16399093/moving-from-permissions-to-optional-permissions-how-to-handle-content-scripts/18293326#18293326
-*/

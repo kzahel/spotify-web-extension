@@ -1,14 +1,26 @@
 console.log("%cINJECTED CONTENT SCRIPT!", (window._already_executed ? "background:#FFC; color:#AAA" : "background:#FF0; color:#000"), window.location.href, updateInfo, window._already_executed); // updateInfo passed in from chrome.tabs.onUpdate
 
+
+function on_receive_message_from_web_page(msg) {
+    var data = msg.detail
+    if (data.source == 'content_script') {
+        // ignore
+    } else {
+        try_port_postMessage(data)
+    }
+}
+
 function ignoremessage(type, evt) {
     // NOISY shitty messages that we want to ignore (specific for
     // play.spotify.com cross-iframe postMessage communication
+    return true; // simply ignore all postMessages created from the page
     if (evt.data == '{"type": "execute_deferreds"}') {
         return true;
     }
 }
 
 function try_port_postMessage(data) {
+    // Send data back to background event page
     if (window.port) {
         port.postMessage(data)
     } else {
@@ -17,8 +29,11 @@ function try_port_postMessage(data) {
 }
 
 function handle_window_events(type, win) {
+    return // DONT use this anymore. unless wanting actual window events. too noisy.
     // type is "root" or "frameX", or TBD:"external"?
     win.addEventListener('message', function(evt) {
+
+        console.log('content_script:handle window messages')
 
         var data = evt.data;
         if (data.length !== undefined) {
@@ -70,29 +85,20 @@ function setup_background_port() {
     })
     port.postMessage({message: "content_script_loaded"});
     port.onMessage.addListener(function(msg) {
+
         console.log('content script received message from background page',msg);
 
         if (msg.cc && msg.cc == window.location.hostname) {
-            // dont need to actually check cc because background page knows this already.
-
-            // actually, does it know that????
-
-            // check this... i am getting tired
-
-            // hopefully doesn't have too many side effects :-)
-            // console.log('content script forwarding to web page WARNING MANUAL HTTP:// DEST for POSTMESSAGE')
-
-            // TODO -- WTF why are we doing this inject it instead with a script tag?
-            // custom event on hidden dom node would be best?
             console.log('message had cc, forwarding to web page',msg)
-            window.postMessage([msg], window.location.origin)
+            // window.postMessage([msg], window.location.origin)
+            custom_dom_event(msg, 'content_script')
+
         }
     });
     return port
 }
 
-
-console.assert( BGPID ); // INDICATES RACE condition between manifest injection and programmatic injection!!!!!!!
+console.assert( BGPID );
 console.assert( config );
 
 if (window.parent !== window) {
@@ -100,38 +106,13 @@ if (window.parent !== window) {
     var msg = ['not root frame', _already_executed];
     msg
 } else if (window._already_executed) {
-
     var lastBGPID = _already_executed[2]
     var msg = ['already executed a content script from', _already_executed]
-
-/*
-    if (lastBGPID != BGPID) {
-        console.log('background event page reloaded! setup new port!')
-        msg = ['already executed, however this is new BGPID...']
-        console.assert( ! window.port )
-        window.port = setup_background_port()
-    } else {
-        console.log(msg);
-        msg;
-    }
-*/
-
     msg;
 } else {
-
-
-/*
-    chrome.runtime.onMessage.addListener(messageRecv);
-    function messageRecv(msg) {
-        console.log('content script received message from chrome.runtime',msg);
-    }
-*/
-
+    get_hidden_div().addEventListener(config.hidden_div_event_name, on_receive_message_from_web_page)
     window.port = setup_background_port()
-
-
     var s = document.createElement("script");
-
     inject_config();
     s.src = chrome.extension.getURL("js/"+config.pagename+".inject.js");
     s.onload = function() {
@@ -140,27 +121,6 @@ if (window.parent !== window) {
     document.body.appendChild(s);
 
     handle_window_events('root',window)
-
-/*
-
-// this is a bunch of noisy shit that's not very useful for this page.
-// but could be nice if you want to look at all the postMessages...
-
-
-
-  // frames may not be ready yet. so don't do this.
-    var frame = null;
-    for (var i=0; i<window.frames.length; i++) {
-
-        frame = window.frames[i];
-        if (frame.location.origin == window.location.origin) {
-            forward_window_events('frame'+i, frame);
-        }
-
-        // DOM wont let us do this
-        // forward_window_events('external', window.frames[i]);
-    }
-*/
 
     window._already_executed = [config.pagename+'.content_script.js', window.location.origin, BGPID]
 }
