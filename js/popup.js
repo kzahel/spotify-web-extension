@@ -14,13 +14,25 @@ get_background();
 
 function $(id) { return document.getElementById(id); }
 
-function populate_album_info() {
+function do_command(command) {
     get_background( function() {
+        console.log('got background',bg)
+        bg.api.do_player_command( command, function(response) {
+        })
+    })    
+}
+
+function populate_album_info(cb) {
+    console.log('populate_album_info')
+    get_background( function() {
+        console.log('got background',bg)
         bg.api.get_playing( function(response) {
+            console.log('get_playing response',response)
             var track = response.info.track
             var album = track.album
             var artists = track.artists;
             var image = track.images[1][1];
+
             $("track-albumart").innerHTML = '<img src="'+image+'" />'
 
             // UNSAFE UNSAFE use document.createTextNode or whatever
@@ -29,14 +41,23 @@ function populate_album_info() {
             for (var i=0; i<artists.length; i++) {
                 h.push('<a href="'+ artists[i].uri + '">'+artists[i].name+'</a>')
             }
+            h.push(JSON.stringify(response.playerState))
+
             $("track-songinfo").innerHTML = h.join('');
+            if (cb) {cb()}
         })
     })
 }
 
-function bind_get_info() {
+function bind_others() {
     var btn = document.querySelector('#get-info');
     btn.addEventListener('click', populate_album_info);
+
+    var btn = document.querySelector('#command-playpause');
+    btn.addEventListener('click', function() {do_command('playpause')})
+
+    var btn = document.querySelector('#command-skipforward');
+    btn.addEventListener('click', function(){do_command('skipforward')})
 }
 
 function bind_permission_upgrade() {
@@ -68,9 +89,21 @@ function bind_permission_upgrade() {
 
 function onload() {
     bind_permission_upgrade()
-    //bind_get_info()
+    bind_others()
+    //populate_album_info()
 
-    populate_album_info()
+    setTimeout( function() {
+        updatetick()
+    }, 100 )
+
+}
+
+function updatetick() {
+    console.log('updatetick')
+    populate_album_info( function() {
+
+        setTimeout( updatetick, 1000 )
+    })
 }
 
 document.addEventListener("DOMContentLoaded", function() {

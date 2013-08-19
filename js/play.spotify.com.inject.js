@@ -49,6 +49,7 @@
     }
 
     function respond_to_api_message(request, payload) {
+        console.log('respond to api message!',payload)
         send_to_content_script( { requestid: request.requestid,
                                   payload: payload } )
     }
@@ -59,10 +60,14 @@
     // this is being added TWICE sometimes... ?
     window.addEventListener('message', function(evt) {
         var data = evt.data
-        data = data[0] // unpack from array because non array messes up the web page
 
-        if (evt.source == window) { // from our own content script :-)
+        if (evt.source == window) { // from our own content script :-) (hopefully)
+            if (data.length !== undefined) {
+                data = data[0] // hack because main page throws annoying exception if we send an object
+            }
+
             if (data.requestid && data.cc && data.payload) {
+
                 var request = data
                 var payload = data.payload
                 console.log('handling custom extension API message',payload.command,'with request id',data.requestid);
@@ -73,14 +78,35 @@
                     respond_to_api_message( request, { info: "queried good frames and returning data :-)", 
                                                        frames: frames.map( function(fi) { return [fi.num, fi.frame.location.pathname] }),
                                                        numframes: frames.length })
+                } else if (payload.command == 'do_player_command') {
+                    var command = payload.commandargs
+                    var player = coreJs.getMainPlayer()
+                    var possible = ['play','playpause','pause','resume','seek','setMasterVolume','setVolume','stop'];
+                    var response = {}
+
+                    if (command == 'skipforward') {
+                        var r = new Spotify.Bridge.Responder();
+                        r.trigger('player_skip_to_next', [{id:'extension'}]);
+                    } else if (command == 'playpause') {
+                        player.playpause()
+                    } else {
+                        response.error=true
+                        response.info='unrecognized command'
+                    }
+                    respond_to_api_message(request, response)
+
                 } else if (payload.command == 'getplayerstuff') {
 
                     var frame = window.frames[payload.framenum]
 
                     frame.require('$api/models', function(models) {
                         models.player.load(['playing']).done( function(current) {
+
+                            var player = coreJs.getMainPlayer()
+
                             var response = {
-                                info: current
+                                info: current,
+                                playerState: player.getPlayerState()
                             };
                             respond_to_api_message( request, response );
                         })

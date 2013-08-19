@@ -84,6 +84,7 @@ function setup_background_port() {
 
             // TODO -- WTF why are we doing this inject it instead with a script tag?
             // custom event on hidden dom node would be best?
+            console.log('message had cc, forwarding to web page',msg)
             window.postMessage([msg], window.location.origin)
         }
     });

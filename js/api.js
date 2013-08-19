@@ -47,6 +47,9 @@ SpotifyWebAPI.prototype = {
         this.send_to_webpage( { command: 'getframes' }, cb )
         // set this._playerframenum
     },
+    do_player_command: function(command, cb) {
+        this.send_to_webpage( { framenum: this._playerframenum, command: 'do_player_command', commandargs:command }, cb )
+    },
     get_playing: function(cb) {
         this.send_to_webpage( { framenum: this._playerframenum, command: 'getplayerstuff' }, cb )
     },
@@ -54,3 +57,5 @@ SpotifyWebAPI.prototype = {
         this.send_to_webpage( { framenum: this._playerframenum, command: 'get_rootlist' }, cb )
     }
 }
+
+var bridge_key_events = ['player_play_toggle','player_skip_to_prev','player_skip_to_next','player_seek_backward','player_seek_forward','player_volume_up','player_volume_down','navigation_show_search'] // can call player directly? that wont skip track though, just controls play/pause...
