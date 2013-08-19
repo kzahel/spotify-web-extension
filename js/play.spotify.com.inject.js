@@ -29,6 +29,7 @@
 
     function send_to_content_script_using_custom_event(msg) {
         // this might be more secretive than window.postMessage, and have fewer side effects
+        // but i don't know which dom node to use, and am scared to create an empty one ( i probably shouldn't be...)
 
         var customEvent = document.createEvent('Event');
         customEvent.initEvent('myCustomEvent', true, true);
@@ -40,10 +41,10 @@
     }
 
     function send_to_content_script(msg) {
-        window.postMessage({sender:"extension", 
-                            message: msg,
-                            injected_script: config.pagename + '.inject.js', 
-                            extension_id: config.extension_id}, 
+        window.postMessage([{sender:"extension", 
+                             message: msg,
+                             injected_script: config.pagename + '.inject.js', 
+                             extension_id: config.extension_id}],
                            window.location.origin)
     }
 
@@ -57,13 +58,14 @@
 
     // this is being added TWICE sometimes... ?
     window.addEventListener('message', function(evt) {
-        //HANDLE API REQUEST MESSAGE        this.port.postMessage( { requestid: requestid, cc: config.pagename, payload: msg } )
+        var data = evt.data
+        data = data[0] // unpack from array because non array messes up the web page
 
         if (evt.source == window) { // from our own content script :-)
-            if (evt.data.requestid && evt.data.cc && evt.data.payload) {
-                var request = evt.data
-                var payload = evt.data.payload
-                console.log('handling custom extension API message',payload.command,'with request id',evt.data.requestid);
+            if (data.requestid && data.cc && data.payload) {
+                var request = data
+                var payload = data.payload
+                console.log('handling custom extension API message',payload.command,'with request id',data.requestid);
                 if (payload.command == 'getframes') {
 
                     var frames = find_good_frames()
@@ -85,9 +87,6 @@
                     })
 
                 } else if (payload.command == 'get_rootlist') {
-
-
-
                     var frame = window.frames[payload.framenum]
 
                     frame.require('$api/models', function(models) {
@@ -98,7 +97,6 @@
                             respond_to_api_message( request, response );
                         })
                     })
-
                 } else {
                     console.error('unrecognized API message',payload.command, evt);
                 }

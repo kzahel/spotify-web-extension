@@ -62,7 +62,7 @@ function on_new_permissions() {
 function inject_content_scripts(tab, updateInfo) {
     /* called each time a chrome.tabs.tabUpdate is triggered (basically every single type of navigation, even sub-iframes */
 
-    chrome.tabs.executeScript( tab.id, { code: "var updateInfo="+JSON.stringify(updateInfo)+";var BGPID = " + BGPID + ";[window.location.origin,window.location.hostname];" }, function(results0) {
+    chrome.tabs.executeScript( tab.id, { code: "var updateInfo="+JSON.stringify(updateInfo)+";var BGPID = " + BGPID + ";[window.location.origin,window.location.hostname,window.location.href];" }, function(results0) {
 
         if (results0 === undefined) {
             console.log('Unable to execute content script')
@@ -74,6 +74,7 @@ function inject_content_scripts(tab, updateInfo) {
 
             var origin = tabinfo[0]
             var hostname = tabinfo[1]
+            var href = tabinfo[2]
 
             chrome.tabs.executeScript( tab.id,  { file: 'js/common.js' }, function(results1) {
                 if (hostname == config.pagename) {
@@ -104,6 +105,12 @@ chrome.runtime.onMessage.addListener( function(msg) {
     // for listening all.content script 
     if (msg.event == 'protocol_click') {
         console.log("HANDLE PROTOCOL CLICK!",msg.href)
+        if (msg.protocol == 'spotify') {
+            var parts = msg.href.split(':')
+            parts.shift(1)
+            link = 'https://play.spotify.com/' + parts.join('/')
+            chrome.tabs.create( { url: link, active: true })
+        }
     }
 })
 

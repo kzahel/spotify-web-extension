@@ -3,12 +3,10 @@ if (window._already_executed) {
     console.log(msg);
     msg;
 } else if (window.location.hostname == config.pagename) {
-    var msg = 'dont execute all.content_script, this is ' + config.pagename
+    var msg = ['dont execute all.content_script, this is ' + config.pagename]
     console.log(msg);
     msg;
 } else {
-
-
     window.bg = null;
     function get_background(cb) {
         if (window.bg) { 

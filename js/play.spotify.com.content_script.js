@@ -1,4 +1,4 @@
-console.log("%cINJECTED CONTENT SCRIPT!", (window._already_executed ? "background:#FFC; color:#AAA" : "background:#FF0; color:#000"), window.location.href, updateInfo, window._already_executed); // updateInfo passed in from chrome.tabs.onUpdateAA
+console.log("%cINJECTED CONTENT SCRIPT!", (window._already_executed ? "background:#FFC; color:#AAA" : "background:#FF0; color:#000"), window.location.href, updateInfo, window._already_executed); // updateInfo passed in from chrome.tabs.onUpdate
 
 function ignoremessage(type, evt) {
     // NOISY shitty messages that we want to ignore (specific for
@@ -20,14 +20,19 @@ function handle_window_events(type, win) {
     // type is "root" or "frameX", or TBD:"external"?
     win.addEventListener('message', function(evt) {
 
-        if (evt.data.cc && evt.data.requestid && evt.data.payload) {
+        var data = evt.data;
+        if (data.length !== undefined) {
+            data = data[0] // hack because main page throws annoying exception if we send an object
+        }
+
+        if (data.cc && data.requestid && data.payload) {
             // API message, don't forward back up to background page
             // because that's where it came from! ignore.
 
-        } else if (evt.data.extension_id &&
-                   evt.data.injected_script == config.pagename + '.inject.s' &&
-                   evt.data.message && evt.data.message.payload && evt.data.message.requestid) {
-            try_port_postMessage(evt.data);
+        } else if (data.extension_id &&
+                   data.injected_script == config.pagename + '.inject.s' &&
+                   data.message && data.message.payload && data.message.requestid) {
+            try_port_postMessage(data);
 
         } else {
             // simple forwarding of messages back up to root frame
@@ -36,7 +41,7 @@ function handle_window_events(type, win) {
             }
             var sendup = {
                 type: type,
-                data: evt.data,
+                data: data,
                 origin: evt.origin
             };
             try_port_postMessage({message: {info:"proxied/filtered from browser page", jsorigin:window.location.href, msgevt: sendup}})
@@ -59,7 +64,6 @@ function inject_config() {
 function setup_background_port() {
     var port = chrome.runtime.connect({name: config.pagename+".content_script"});
     console.log("%cPort connected!","background: #2B2; color: #00000")
-
     port.onDisconnect.addListener(function(evt) {
         window.port = null;
         console.log("%cPort disconnected!","background: #B22; color: #00000")
@@ -77,7 +81,10 @@ function setup_background_port() {
 
             // hopefully doesn't have too many side effects :-)
             // console.log('content script forwarding to web page WARNING MANUAL HTTP:// DEST for POSTMESSAGE')
-            window.postMessage(msg, window.location.origin)
+
+            // TODO -- WTF why are we doing this inject it instead with a script tag?
+            // custom event on hidden dom node would be best?
+            window.postMessage([msg], window.location.origin)
         }
     });
     return port
@@ -87,9 +94,16 @@ function setup_background_port() {
 console.assert( BGPID ); // INDICATES RACE condition between manifest injection and programmatic injection!!!!!!!
 console.assert( config );
 
-if (window._already_executed) {
+if (window.parent !== window) {
+    window._already_executed = [config.pagename+'.content_script.js', window.location.origin, BGPID]
+    var msg = ['not root frame', _already_executed];
+    msg
+} else if (window._already_executed) {
+
     var lastBGPID = _already_executed[2]
     var msg = ['already executed a content script from', _already_executed]
+
+/*
     if (lastBGPID != BGPID) {
         console.log('background event page reloaded! setup new port!')
         msg = ['already executed, however this is new BGPID...']
@@ -99,6 +113,9 @@ if (window._already_executed) {
         console.log(msg);
         msg;
     }
+*/
+
+    msg;
 } else {
 
 

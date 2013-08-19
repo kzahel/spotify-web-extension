@@ -1,5 +1,3 @@
-console.log('popup loaded')
-
 window.bg = null;
 function get_background(cb) {
     if (window.bg) { 
@@ -13,26 +11,6 @@ function get_background(cb) {
     }
 }
 get_background();
-
-// background page can also talk to useing using simple
-// window.postMessage, but ports seem cooler ... ?  advantage of port
-// is it could work with other extensions dont use it, because we have
-// direct access to the background page javascript state
-
-
-
-// dont need this.
-function setup_port() {
-    var port = chrome.runtime.connect({name: "popup"});
-    port.postMessage({message: "popup loaded"});
-    port.onMessage.addListener(function(msg) {
-        console.log('received message on port',msg);
-    });
-    port.onDisconnect.addListener(function() {
-        console.log('port disconnected',port)
-    });
-    return port
-}
 
 function $(id) { return document.getElementById(id); }
 
@@ -90,7 +68,9 @@ function bind_permission_upgrade() {
 
 function onload() {
     bind_permission_upgrade()
-    bind_get_info()
+    //bind_get_info()
+
+    populate_album_info()
 }
 
 document.addEventListener("DOMContentLoaded", function() {
