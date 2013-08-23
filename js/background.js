@@ -84,7 +84,7 @@ chrome.pushMessaging.onMessage.addListener( function(evt) {
         } else if (data.command == 'reload') {
             console.log("RECEIVED RELOAD MESSAGE!")
             chrome.runtime.reload()
-        } else if (data.command == 'channel') {
+        } else if (data.command == 'openchannel') {
             controlchannels.ensure_open_for(data.installid)
         }
     } else {

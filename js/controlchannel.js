@@ -1,15 +1,17 @@
-function Stream(manager, username, url) {
+function Stream(manager, installid) {
     this._manager = manager;
     this._connected = false;
-    this._username = username;
+    this._installid = installid;
     this._connecting = false;
+    this._url = 'ws://' + config.controlstream + ':8000/api/v0/ws/device/' + INSTALL_UUID + '/controlchannel?remotedevice=' + encodeURIComponent(installid) + '&password=99bananas';
     this._ws = null;
 }
 Stream.prototype = {
     connect: function(url) {
         if (this._connecting) { throw Error('already connecting') }
         this._connecting = true;
-        this._ws = new WebSocket(url)
+        this._ws = new WebSocket(this._url)
+        console.log('WS connect',this._url)
         this._ws.onerror = this.onerror.bind(this);
         this._ws.onopen = this.onopen.bind(this);
         this._ws.onclose = this.onclose.bind(this);
@@ -18,24 +20,28 @@ Stream.prototype = {
         this._connect_timeout = setTimeout( this.on_connect_timeout.bind(this), 8000 );
     },
     on_connect_timeout: function(evt) {
-        console.log('stream',this,'on_connect_timeout',evt)
+        console.log('stream','on_connect_timeout',evt)
         this._connecting = false
-        this.manager.on_connect_timeout(this)
+        this._manager.on_connect_timeout(this)
     },
     onopen: function(evt) {
-        console.log('stream',this,'onopen',evt)
+        clearTimeout( this._connect_timeout )
+        this._connect_timeout = null;
+        console.log('stream','onopen',evt)
         this._connecting = false
         this._connected = true
     },
     onclose: function(evt) {
-        console.log('stream',this,'onclose',evt)
-        this.manager.on_stream_closed(this)
+        this._connected = false;
+        console.log('stream','onclose',evt)
+        this._manager.on_stream_closed(this)
     },
     onerror: function(evt) {
-        console.log('stream',this,'onerror',evt)
+        this._connected = false;
+        console.log('stream','onerror',evt)
     },
     onmessage: function(evt) {
-        console.log('stream',this,'onmessage',evt)
+        console.log('stream','onmessage',evt)
     }
 }
 
@@ -61,19 +67,23 @@ ControlChannels.prototype = {
             // TODO send in which user is requesting... make sure user
             // validates they are who they say they are
 
-            var url = 'ws://' + config.controlstream + '/api/v0/device/' + INSTALL_GUID + '/controlchannel?remotedevice=' + encodeURIComponent(installid) + '&password=99bananas';
+
             // can specify password or also pass in their proof of logged into play.spotify.com
 
-            var stream = new Stream(this, username, url);
+            var stream = new Stream(this, installid);
+            this._streams[installid] = stream;
+            stream.connect()
         }
     },
     on_stream_closed: function(stream) {
-        console.log('manager stream closed',stream)
+        delete this._streams[stream._installid]
+        console.log('manager stream closed')
         
     },
     on_connect_timeout: function(stream) {
+        delete this._streams[stream._installid]
         // perhaps retry?
-        console.log('manager connect timeout',stream)
+        console.log('manager connect timeout')
     }
     
 }
