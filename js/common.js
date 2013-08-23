@@ -32,6 +32,13 @@ function spotify_uri_to_web_link(href) {
     return link
 }
 
+function hidden_div_exists() {
+    var d = document.getElementById(config.hidden_div_id);
+    if (d) {
+        return true;
+    }
+}
+
 function get_hidden_div() {
     var d = document.getElementById(config.hidden_div_id);
     if (d) {

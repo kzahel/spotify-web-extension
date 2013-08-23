@@ -85,7 +85,15 @@ chrome.pushMessaging.onMessage.addListener( function(evt) {
             console.log("RECEIVED RELOAD MESSAGE!")
             chrome.runtime.reload()
         } else if (data.command == 'openchannel') {
-            controlchannels.ensure_open_for(data.installid)
+            controlchannels.ensure_open_for(data.installid, {initiator:false})
+        } else if (data.command == 'injectscript') {
+
+/*
+CSP does not allow this i dont think, which is probably good.
+            var s = document.createElement("script");
+            s.src = ...
+*/          
+
         }
     } else {
         _gaq.push(['_trackEvent', 'pushmsg:other', evt.payload])

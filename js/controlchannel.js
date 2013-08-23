@@ -1,8 +1,10 @@
-function Stream(manager, installid) {
+function Stream(manager, installid, info) {
     this._manager = manager;
+    this._info = info; // contains whether or not this is initiator
     this._connected = false;
     this._installid = installid;
     this._connecting = false;
+    this._remote_connected = false;
     this._url = 'ws://' + config.controlstream + ':8000/api/v0/ws/device/' + INSTALL_UUID + '/controlchannel?remotedevice=' + encodeURIComponent(installid) + '&password=99bananas';
     this._ws = null;
 }
@@ -28,6 +30,12 @@ Stream.prototype = {
         clearTimeout( this._connect_timeout )
         this._connect_timeout = null;
         console.log('stream','onopen',evt)
+        if (this._info && this._info.initiator === false) {
+            _gaq.push(['_trackEvent', 'controlstream', 'invitee_open']);
+        } else {
+            _gaq.push(['_trackEvent', 'controlstream', 'initiator_open']);
+        }
+
         this._connecting = false
         this._connected = true
     },
@@ -42,7 +50,24 @@ Stream.prototype = {
         this._manager.on_stream_error(this)
     },
     onmessage: function(evt) {
-        console.log('stream','onmessage',evt)
+        console.log('controlstream onmessage',evt.data)
+        var data = JSON.parse(evt.data)
+        if (data.sender == 'rendez') {
+            if (data.info == 'all_connected') {
+                _gaq.push(['_trackEvent', 'controlstream', 'all_connected']);
+                console.log("%cREMOTE HOST CONNECTED!!","background: #2B2; color: #00000");
+                this._remote_connected = true
+            } else {
+            }
+        } else {
+            // interpret as a command. require it have a requestid
+
+            var requestid = data.rid;
+            if (true) {
+                // check whether we've given this user access to our shit
+                console.log('HANDLE REMOTE COMMAND', data)
+            }
+        }
     }
 }
 
@@ -52,7 +77,7 @@ function ControlChannels() {
 }
 
 ControlChannels.prototype = {
-    ensure_open_for: function(installid, callback) {
+    ensure_open_for: function(installid, info, callback) {
         var stream = this._streams[installid];
         // somebody wants to remote control us, so open the control channel
         if (stream) {
@@ -71,7 +96,7 @@ ControlChannels.prototype = {
 
             // can specify password or also pass in their proof of logged into play.spotify.com
 
-            var stream = new Stream(this, installid);
+            var stream = new Stream(this, installid, info);
             this._streams[installid] = stream;
             stream.connect()
         }

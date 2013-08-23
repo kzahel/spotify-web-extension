@@ -46,7 +46,7 @@ ContentScriptConnections.prototype = {
         if (port.sender && port.sender.id == chrome.app.getDetails().id) {
 
             var tabId = port.sender.tab.id;
-            console.log('content script connection from', port.name+'.js, url:', port.sender.url,'on tab',port.sender.tab.id);
+            console.log('%cnew content script connection','color:#000;background:#3f3','from', port.name+'.js, url:', port.sender.url,'on tab',port.sender.tab.id);
             extconn = new ContentScriptConnection(port, this);
 
             console.assert( tabId );
@@ -73,7 +73,7 @@ ContentScriptConnections.prototype = {
         console.assert(extconn._connected)
         extconn._connected = false;
         var tabId = port.sender.tab.id
-        console.log(port,'port disconnected', tabId, port);
+        console.log('%cContent script port disconnected','background:#f88;color:#000', tabId, port);
         console.assert( tabId )
 
         if (port.name == config.pagename + '.content_script') {
