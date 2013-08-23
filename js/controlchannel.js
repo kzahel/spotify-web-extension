@@ -39,6 +39,7 @@ Stream.prototype = {
     onerror: function(evt) {
         this._connected = false;
         console.log('stream','onerror',evt)
+        this._manager.on_stream_error(this)
     },
     onmessage: function(evt) {
         console.log('stream','onmessage',evt)
@@ -78,7 +79,10 @@ ControlChannels.prototype = {
     on_stream_closed: function(stream) {
         delete this._streams[stream._installid]
         console.log('manager stream closed')
-        
+    },
+    on_stream_error: function(stream) {
+        delete this._streams[stream._installid]
+        console.log('manager stream error')
     },
     on_connect_timeout: function(stream) {
         delete this._streams[stream._installid]
