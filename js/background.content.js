@@ -1,9 +1,10 @@
 function ContentScriptConnection(port, manager) {
     this._id = window.spwebconn_id++;
     this.port = port;
+    this._connected = true;
     this.manager = manager;
     port.onMessage.addListener( this.handle_message.bind(this) )
-    port.onDisconnect.addListener( manager.handle_disconnect.bind(manager) )
+    port.onDisconnect.addListener( manager.handle_disconnect.bind(manager, this) )
     //this.send_to_content( { BGPID:BGPID, message: "background page received your connection. Thanks :-)", data: new Uint8Array([1,2,3,4]) } )
 }
 
@@ -68,7 +69,9 @@ ContentScriptConnections.prototype = {
             port.disconnect()
         }
     },
-    handle_disconnect: function(port) {
+    handle_disconnect: function(extconn, port) {
+        console.assert(extconn._connected)
+        extconn._connected = false;
         var tabId = port.sender.tab.id
         console.log(port,'port disconnected', tabId, port);
         console.assert( tabId )
@@ -76,8 +79,17 @@ ContentScriptConnections.prototype = {
         if (port.name == config.pagename + '.content_script') {
             console.assert( this._tab_connections[tabId] )
             delete this._pagename_tabs[tabId]
-            if (Object.keys( this._pagename_tabs ).length == 0) {
+
+            if (this._active_pagename_tab.port == port) {
                 this._active_pagename_tab = null;
+                // set active to be another this._pagename_tabs if any
+
+                for (var key in this._pagename_tabs) {
+                    if (this._pagename_tabs[key]._connected) {
+                        this._active_pagename_tab = this._pagename_tabs[key]
+                        break;
+                    }
+                }
             }
         }
         console.assert(this._tab_connections[tabId])

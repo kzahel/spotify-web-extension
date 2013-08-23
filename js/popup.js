@@ -36,7 +36,11 @@ function populate_album_info(cb) {
                            'error,' + (response.timeout?'timeout':'') +','+ (response.info?JSON.stringify(response.info):'')])
                 if ($("error").textContent.length < 2) {
                     var href = "https://play.spotify.com/track/3KRAqo71NrfR1UCa34JEsy"
-                    $("error").innerHTML = 'ERROR: ' + JSON.stringify(response) + '<br /><a href="'+href+'" target="_blank">Open Spotify</a>'
+                    if (response.error == 'no connection') {
+                        $("error").innerHTML = 'Welcome! It looks like you don\'t have the Web Player open.<br /><a href="'+href+'" target="_blank">Open Spotify</a>'
+                    } else {
+                        $("error").innerHTML = 'ERROR: ' + JSON.stringify(response) + '<br /><a href="'+href+'" target="_blank">Open Spotify</a>'
+                    }
                 }
             } else {
 
@@ -48,30 +52,34 @@ function populate_album_info(cb) {
 
                 $("error").innerHTML = ''
                 var track = response.info.track
-                var album = track.album
-                var artists = track.artists;
-                var image = track.images[1][1];
+                if (track) {
+                    var album = track.album
+                    var artists = track.artists;
+                    var image = track.images[1][1];
 
-                $("track-albumart").innerHTML = '<img src="'+image+'" />'
-                // UNSAFE UNSAFE use document.createTextNode or whatever
-                $("track-songtitle").innerHTML = '<a target="_blank" href="'+ spotify_uri_to_web_link(track.uri) + '">'+track.name+'</a>'
-                var h = [];
-                for (var i=0; i<artists.length; i++) {
-                    h.push('<a target="_blank" href="'+ spotify_uri_to_web_link(artists[i].uri) + '">'+artists[i].name+'</a><br />')
+                    $("track-albumart").innerHTML = '<img src="'+image+'" />'
+                    // UNSAFE UNSAFE use document.createTextNode or whatever
+                    $("track-songtitle").innerHTML = '<a target="_blank" href="'+ spotify_uri_to_web_link(track.uri) + '">'+track.name+'</a>'
+                    var h = [];
+                    for (var i=0; i<artists.length; i++) {
+                        h.push('<a target="_blank" href="'+ spotify_uri_to_web_link(artists[i].uri) + '">'+artists[i].name+'</a><br />')
+                    }
+                    h.push("<br />")
+
+                    for (var key in response.playerState) {
+                        h.push(key + ' = ' + response.playerState[key] + '<br />')
+                    }
+
+                    if (response.playerState.duration) {
+                        var frac = response.playerState.position / response.playerState.duration
+                        h.push('<div style="border:1px solid black; width:300px"><div style="background:#090; height:10px; width:'+Math.floor(frac*200)+'px"></div></div>')
+                    }
+
+
+                    $("track-songinfo").innerHTML = h.join('');
+                } else {
+                    $("error").innerHTML = 'No active music track playing.'
                 }
-                h.push("<br />")
-
-                for (var key in response.playerState) {
-                    h.push(key + ' = ' + response.playerState[key] + '<br />')
-                }
-
-                if (response.playerState.duration) {
-                    var frac = response.playerState.position / response.playerState.duration
-                    h.push('<div style="border:1px solid black; width:300px"><div style="background:#090; height:10px; width:'+Math.floor(frac*200)+'px"></div></div>')
-                }
-
-
-                $("track-songinfo").innerHTML = h.join('');
             }
             if (cb) {cb()}
         })

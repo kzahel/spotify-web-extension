@@ -49,6 +49,8 @@ if (window._already_executed) {
             } else if (foundNode.href.match('^magnet:')) {
                 console.log('you clicked on a magnet link yahhh')
                 // TODO: is background page dead? send ALARM
+                // this should wake up the background page!
+
                 chrome.runtime.sendMessage({event:'protocol_click',
                                             protocol:'magnet',
                                             href:foundNode.href})

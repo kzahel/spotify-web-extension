@@ -56,25 +56,8 @@
     function load_models(callback) {
         fr.require('$api/models', function(models) { 
             callback(models);
-            // models.player.load(['playing'].done( function(current) { console.log(current) } ) )
         })
     }
-
-/*
-  // using custom_dom_event instead
-    function send_to_content_script_using_custom_event(msg) {
-        // this might be more secretive than window.postMessage, and have fewer side effects
-        // but i don't know which dom node to use, and am scared to create an empty one ( i probably shouldn't be...)
-
-        var customEvent = document.createEvent('Event');
-        customEvent.initEvent('myCustomEvent', true, true);
-        function fireCustomEvent(data) {
-            hiddenDiv = document.getElementById('myCustomEventDiv');
-            hiddenDiv.innerText = data
-            hiddenDiv.dispatchEvent(customEvent);
-        }
-    }
-*/
 
     function send_to_content_script(msg) {
 
@@ -125,7 +108,18 @@
                 response.info='unrecognized command'
             }
             respond_to_api_message(request, response)
-
+        } else if (payload.command == 'getuser') {
+            var frame = window.frames[payload.framenum]
+            frame.require('$api/models', function(models) {
+                // * var user = models.User.fromUsername('**freer!de**'); // to load specific user
+                models.session.user.load(['username']).done( function(user) {
+                    var response = {
+                        user: user
+                    }
+                    return respond_to_api_message(request,
+                                                  response)
+                });
+            })
         } else if (payload.command == 'getplayerstuff') {
 
             var frame = window.frames[payload.framenum]

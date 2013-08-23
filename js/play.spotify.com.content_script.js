@@ -1,6 +1,5 @@
 console.log("%cINJECTED CONTENT SCRIPT!", (window._already_executed ? "background:#FFC; color:#AAA" : "background:#FF0; color:#000"), window.location.href, updateInfo, window._already_executed); // updateInfo passed in from chrome.tabs.onUpdate
 
-
 function on_receive_message_from_web_page(msg) {
     var data = msg.detail
     if (data.source == 'content_script') {
@@ -22,7 +21,7 @@ function ignoremessage(type, evt) {
 function try_port_postMessage(data) {
     // Send data back to background event page
     if (window.port) {
-        port.postMessage(data)
+        port.port.postMessage(data)
     } else {
         console.log('unable to forward message to background, no port')
     }
@@ -80,10 +79,16 @@ function setup_background_port() {
     var port = chrome.runtime.connect({name: config.pagename+".content_script"});
     console.log("%cPort connected!","background: #2B2; color: #00000")
     port.onDisconnect.addListener(function(evt) {
-        window.port = null;
+        window.port.connected = false;
         console.log("%cPort disconnected!","background: #B22; color: #00000")
+        // how does this happen, what does it mean? should we try to reconnect?
+
+        // will this work?
+
+        // set delayed timeout, and set lock
+        window.port = {port:setup_background_port(), connected:true}
     })
-    port.postMessage({message: "content_script_loaded"});
+    //port.postMessage({message: "content_script_loaded"});
     port.onMessage.addListener(function(msg) {
 
         console.log('content script received message from background page',msg);
@@ -104,14 +109,14 @@ console.assert( config );
 if (window.parent !== window) {
     window._already_executed = [config.pagename+'.content_script.js', window.location.origin, BGPID]
     var msg = ['not root frame', _already_executed];
-    msg
+    msg;
 } else if (window._already_executed) {
     var lastBGPID = _already_executed[2]
     var msg = ['already executed a content script from', _already_executed]
     msg;
 } else {
     get_hidden_div().addEventListener(config.hidden_div_event_name, on_receive_message_from_web_page)
-    window.port = setup_background_port()
+    window.port = {port:setup_background_port(), connected:true}
     var s = document.createElement("script");
     inject_config();
     s.src = chrome.extension.getURL("js/"+config.pagename+".inject.js");

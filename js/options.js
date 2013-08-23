@@ -46,6 +46,64 @@ function restore_options() {
 //document.addEventListener('DOMContentLoaded', restore_options);
 //document.querySelector('#save').addEventListener('click', save_options);
 
+function bind_channel_button() {
+    var btn = document.querySelector('#setup-channel');
+    btn.addEventListener('click', function(event) {
+        get_background( function() {
+            bg.api.get_user(function(user) {
+                if (user) {
+                    setup_push(user)
+                    // store this user in local settings...
+                    chrome.storage.local.set({'last_user':user.username})
+                } else {
+                    notify('error getting user! Please log into spotify and keep the tab open.')
+                }
+
+            });
+        });
+    })
+}
+
+function notify(msg) {
+    var elt = document.getElementById('info-result')
+    elt.style.color= '#03d'
+    elt.innerText = msg
+
+}
+
+
+function setup_push(user) {
+    // interactive = true
+    chrome.pushMessaging.getChannelId(true, function(resp) {
+        console.log('channel setup resp',resp)
+
+        if (resp && resp.channelId) {
+            notify('channel:'+JSON.stringify(resp) + ', username:'+user.username )
+            get_background( function() {
+                chrome.cookies.get({url:'https://' + config.pagename, name: 'sps'}, function(spcookie) {
+                    // get spotify session cookie
+
+                    var register_data = { install_id: bg.INSTALL_UUID,
+                                          device: bg.get_device(),
+                                          authcookie: { sps: spcookie.value },
+                                          username: user.username, 
+                                          channel: resp.channelId }
+
+                    bg.pushapi.register( register_data, function(res) {
+                        console.log('register push data',register_data,'got result',res)
+                        notify('register channel with backend result...:' + JSON.stringify(res));
+                    } )
+
+                });
+            })
+        } else {
+            notify('unable to setup push channel')
+        }
+
+
+    })
+}
+
 function bind_youtube_permission_upgrade() {
     var btn = document.querySelector('#add-permissions-youtube');
     btn.addEventListener('click', function(event) {
@@ -115,5 +173,6 @@ function bind_all_permission_upgrade() {
 document.addEventListener("DOMContentLoaded", function() {
     bind_all_permission_upgrade()
     bind_youtube_permission_upgrade()
+    bind_channel_button()
     track_button_clicks()
 })
