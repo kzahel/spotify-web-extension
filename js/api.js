@@ -100,7 +100,6 @@ SpotifyWebAPI.prototype = {
 
 var bridge_key_events = ['player_play_toggle','player_skip_to_prev','player_skip_to_next','player_seek_backward','player_seek_forward','player_volume_up','player_volume_down','navigation_show_search'] // can call player directly? that wont skip track though, just controls play/pause...
 
-
 function PushAPI() {
 }
 PushAPI.prototype = {

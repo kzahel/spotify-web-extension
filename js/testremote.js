@@ -1,30 +1,84 @@
-window.bg = null;
-function get_background(cb) {
-    if (window.bg) { 
-        if (cb) { cb() }
-    } else {
-        chrome.runtime.getBackgroundPage( function(bgpage) {
-            bg = bgpage;
-            console.log('got background page',bg);
-            if (cb) { cb() }
-        })
-    }
-}
+// example remote control stuff
+window.bg = null
+window.installid = null
 
 
-function $(id) { return document.getElementById(id); }
+chrome.runtime.getBackgroundPage( function(bg) {
+    window.bg = bg
 
-function do_command(command) {
-    bg.api.do_player_command( command, function(response) {
-        console.log('did player command', response)
+    bg.remotes.list( function(remotes) {
+
+        //var installid = "0n523t5k1s4e3c4b5c690m28367i332g"
+        window.installid = remotes.shared_devices[0].installid;
+        console.log('open comm with ',
+                    remotes.shared_devices[0].deviceinfo.username,',',
+                    remotes.shared_devices[0].deviceinfo)
+                    
+
+        bg.controlchannels.ensure_open_for(installid, {initiator:true}, function(d){
+            console.log('remote connected',d)
+
+
+            updatetick() // starts the polling
+
+
+            //bg.controlchannels._streams[installid].request({method:"get_playing"}, function(c){console.log('resp',c)})
+
+
+            //bg.controlchannels._streams[installid].request({method:"do_player_command",args:["skipforward"]}, function(c){console.log('resp',c)})
+
+
+            //bg.controlchannels._streams[installid].request({method:"do_player_command",args:["playpause"]}, function(c){console.log('resp',c)})
+
+
+        });
+
+
+    })
+})
+
+
+function bind_others() {
+    var btn = document.querySelector('#get-info');
+    btn.addEventListener('click', function(){
+        populate_album_info()
+    });
+
+    var btn = document.querySelector('#command-playpause');
+    btn.addEventListener('click', function() {
+        do_command('playpause')
+    })
+
+    var btn = document.querySelector('#command-skipforward');
+    btn.addEventListener('click', function(){
+        do_command('skipforward')
     })
 }
 
+
+
+function updatetick() {
+    console.log('updatetick')
+    // WAIT until page is loaded otherwise we'll get errors...
+
+    populate_album_info( function() {
+        setTimeout( updatetick, 2000 )
+    })
+}
+
+
+document.addEventListener("DOMContentLoaded", function() {
+    console.log('dom content loaded')
+    bind_others()
+
+})
+
+
 function populate_album_info(cb) {
     console.log('populate_album_info')
-    get_background( function() {
+
         console.log('got background',bg)
-        bg.api.get_playing( function(response) {
+        remote_api.get_playing( function(response) {
             console.assert(response)
             console.log('get_playing response',response)
 
@@ -53,9 +107,12 @@ function populate_album_info(cb) {
                 if (track) {
                     var album = track.album
                     var artists = track.artists;
-                    var image = track.images[1][1];
 
-                    $("track-albumart").innerHTML = '<img src="'+image+'" />'
+                    if (track.images) {
+                        var image = track.images[1][1];
+
+                        $("track-albumart").innerHTML = '<img src="'+image+'" />'
+                    }
                     // UNSAFE UNSAFE use document.createTextNode or whatever
                     $("track-songtitle").innerHTML = '<a target="_blank" href="'+ spotify_uri_to_web_link(track.uri) + '">'+track.name+'</a>'
                     var h = [];
@@ -81,55 +138,22 @@ function populate_album_info(cb) {
             }
             if (cb) {cb()}
         })
+
+}
+
+function $(id) { return document.getElementById(id); }
+
+var remote_api = {
+    do_player_command: function(command, callback) {
+        bg.controlchannels._streams[installid].request({method:"do_player_command",args:[command]}, callback)
+    },
+    get_playing: function(callback) {
+        bg.controlchannels._streams[installid].request({method:"get_playing"}, callback)
+    }
+}
+
+function do_command(command) {
+    remote_api.do_player_command( command, function(response) {
+        console.log('did player command', response)
     })
 }
-
-function bind_others() {
-    var btn = document.querySelector('#get-info');
-    btn.addEventListener('click', function(){
-        populate_album_info()
-    });
-
-    var btn = document.querySelector('#command-playpause');
-    btn.addEventListener('click', function() {
-        do_command('playpause')
-    })
-
-    var btn = document.querySelector('#command-skipforward');
-    btn.addEventListener('click', function(){
-        do_command('skipforward')
-    })
-}
-
-function bind_permission_upgrade() {
-    var btn = document.querySelector('#add-permissions');
-    btn.addEventListener('click', function(event) {
-        chrome.tabs.create({active:true, url:'options.html'})
-    });
-}
-
-function onload() {
-    bind_permission_upgrade()
-    bind_others()
-    if (window.track_button_clicks){track_button_clicks()}
-
-    setTimeout( function() {
-        updatetick()
-    }, 100 )
-
-}
-
-function updatetick() {
-    console.log('updatetick')
-    // WAIT until page is loaded otherwise we'll get errors...
-
-    populate_album_info( function() {
-        setTimeout( updatetick, 2000 )
-    })
-}
-
-document.addEventListener("DOMContentLoaded", function() {
-    console.log('dom content loaded')
-    get_background();
-    onload()
-})
