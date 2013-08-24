@@ -51,13 +51,18 @@ function bind_channel_button() {
     btn.addEventListener('click', function(event) {
         get_background( function() {
             bg.api.get_user(function(user) {
-                if (user) {
-                    setup_push(user)
-                    // store this user in local settings...
-                    chrome.storage.local.set({'last_user':user.username})
-                } else {
-                    notify('error getting user! Please log into spotify and keep the tab open.')
-                }
+                fetch_session_cookie( function(spcookie) {
+                    if (user) {
+                        setup_push()
+                        // store this user in local settings...
+                        var userinfo = {'username':user.username,'sps':spcookie.value}
+
+                        chrome.storage.local.set(userinfo)
+                        window.last_user_info = userinfo
+                    } else {
+                        notify('error getting user! Please log into spotify and keep the tab open.')
+                    }
+                })
 
             });
         });
@@ -72,29 +77,28 @@ function notify(msg) {
 }
 
 
-function setup_push(user) {
+function setup_push() {
     // interactive = true
     chrome.pushMessaging.getChannelId(true, function(resp) {
         console.log('channel setup resp',resp)
 
         if (resp && resp.channelId) {
-            notify('channel:'+JSON.stringify(resp) + ', username:'+user.username )
+            notify('channel:'+JSON.stringify(resp) + ', username:'+last_user_info.username )
             get_background( function() {
-                chrome.cookies.get({url:'https://' + config.pagename, name: 'sps'}, function(spcookie) {
+
                     // get spotify session cookie
 
-                    var register_data = { install_id: bg.INSTALL_UUID,
-                                          device: bg.get_device(),
-                                          authcookie: { sps: spcookie.value },
-                                          username: user.username, 
-                                          channel: resp.channelId }
+                var register_data = { install_id: bg.INSTALL_UUID,
+                                      device: bg.get_device(),
+                                      sps: last_user_info.sps,
+                                      username: last_user_info.username, 
+                                      channel: resp.channelId }
 
-                    bg.pushapi.register( register_data, function(res) {
-                        console.log('register push data',register_data,'got result',res)
-                        notify('register channel with backend result...:' + JSON.stringify(res));
-                    } )
+                bg.pushapi.register( register_data, function(res) {
+                    console.log('register push data',register_data,'got result',res)
+                    notify('register channel with backend result...:' + JSON.stringify(res));
+                } )
 
-                });
             })
         } else {
             notify('unable to setup push channel')

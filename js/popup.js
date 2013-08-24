@@ -10,7 +10,7 @@ function get_background(cb) {
         })
     }
 }
-get_background();
+
 
 function $(id) { return document.getElementById(id); }
 
@@ -113,7 +113,7 @@ function bind_permission_upgrade() {
 function onload() {
     bind_permission_upgrade()
     bind_others()
-    track_button_clicks()
+    if (window.track_button_clicks){track_button_clicks()}
 
     setTimeout( function() {
         updatetick()
@@ -124,11 +124,14 @@ function onload() {
 function updatetick() {
     console.log('updatetick')
     // WAIT until page is loaded otherwise we'll get errors...
+
     populate_album_info( function() {
         setTimeout( updatetick, 2000 )
     })
 }
 
 document.addEventListener("DOMContentLoaded", function() {
+    console.log('dom content loaded')
+    get_background();
     onload()
 })

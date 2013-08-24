@@ -13,21 +13,26 @@ var logconfig = {
 var content_conns = new ContentScriptConnections;
 var extension_conns = new ExtensionConnections;
 
-function fetch_or_set_uuid() {
+
+
+
+function fetch_or_set_uuid(cb) {
     chrome.storage.local.get('install_uuid', function(data) {
         if (data && data.install_uuid) {
             INSTALL_UUID = data.install_uuid
             console.log('retreived stored install_uuid',data)
+            cb()
         } else {
             // INSTALL_UUID = uuid4()
             INSTALL_UUID = randombytes_in_base(16,32)
-            chrome.storage.local.set({'install_uuid':INSTALL_UUID})
+            chrome.storage.local.set({'install_uuid':INSTALL_UUID}, cb)
             console.log('set install_uuid in storage',INSTALL_UUID)
         }
+
     });
 }
 
-fetch_or_set_uuid()
+fetch_or_set_uuid(onready)
 
 chrome.runtime.onInstalled.addListener( function(install_data) {
 
@@ -210,9 +215,7 @@ chrome.runtime.onMessage.addListener( function(msg) {
         console.log("HANDLE PROTOCOL CLICK!",msg.href)
         if (msg.protocol == 'spotify') {
             var link = spotify_uri_to_web_link(msg.href)
-
             // track spotify:album or whatever clicked
-
             _gaq.push(['_trackEvent', 'spotify:'+msg.href.split(':')[1], 'clicked']);
 
             chrome.tabs.query( { url: "*://"+config.pagename+"/*" }, function(tabs) {
@@ -223,9 +226,6 @@ chrome.runtime.onMessage.addListener( function(msg) {
                     chrome.tabs.update( tabs[0].id, { url: link, active: true })
                 }
             });
-
-
-
         }
     }
 })
@@ -234,3 +234,11 @@ var api = new SpotifyWebAPI;
 var pushapi = new PushAPI;
 var controlchannels = new ControlChannels;
 var remotes = new RemoteDevices;
+
+function onready() {
+/*    controlchannels.ensure_open_for("0n523t5k1s4e3c4b5c690m28367i332g", {initiator:true}, function(stream) {
+        stream.request({method:"get_playing"}, function(resp) {
+            console.log('resp is',resp)
+        })
+    })*/
+}

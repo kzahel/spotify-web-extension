@@ -31,6 +31,25 @@ SpotifyWebAPI.prototype = {
             conn.send_api_message_to_webpage( requestid, msg )
         }
     },
+    handle_remote_request: function(req, callback) {
+        if (req && req.method) {
+            // TODO -- whitelist methods
+            // handle the request as if it were made to the local spotify api
+            console.assert(req.method)
+            var args = req.args
+            if (! req.args) {
+                args = []
+            }
+            args.push( callback )
+            var method = api[req.method];
+            console.log('handling remote command with method',method,'and args',req.args)
+            method.apply(api, args)
+        } else {
+            var resp = 'not sure how to handle remote request'
+            console.log(resp,req)
+            callback(resp)
+        }
+    },
     handle_webpage_api_response: function(msg) {
         console.log('SpotifyWebAPI handle response!',msg)
         var callbackinfo = this._requests[msg.requestid]
@@ -68,8 +87,12 @@ SpotifyWebAPI.prototype = {
                          if (result.error) {
                              cb(null)
                          } else {
-                             chrome.storage.local.set({'username':result.user.username})
-                             cb(result.user)
+                             fetch_session_cookie( function(c) {
+                                 chrome.storage.local.set({'username':result.user.username,
+                                                           'sps': c.value
+                                                          })
+                                 cb(result.user)
+                             })
                          }
                      })
     }
@@ -137,10 +160,10 @@ function RemoteDevices() {
 }
 
 RemoteDevices.prototype = {
-    fetch_user_devices: function(username, listcb) {
+    fetch_user_devices: function(username, sps, listcb) {
         // fetches all devices for a user (TODO "authuser" credential needs to be checked :-))
         var xhr = new XMLHttpRequest;
-        xhr.open( 'GET', config.pushserver + '/api/v0/device/list?authuser=' + username)
+        xhr.open( 'GET', config.pushserver + '/api/v0/device/list?authuser=' + encodeURIComponent(username) + '&sps=' + encodeURIComponent(sps))
         xhr.setRequestHeader('Content-type','application/json')
         xhr.send()
 
@@ -154,8 +177,10 @@ RemoteDevices.prototype = {
         }
     },
     list: function(listcb) {
-        get_last_user( function(username) {
-            this.fetch_user_devices(username, listcb)
+        get_last_user( function(userdata) {
+            var username = userdata.username;
+            var sps = userdata.sps;
+            this.fetch_user_devices(username, sps, listcb)
         }.bind(this))
     },
     allow_access: function(from_user, receiver, listcb) {

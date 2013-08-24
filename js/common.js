@@ -11,11 +11,18 @@ var config = {
     use_desktop_spotify: false // preventDefault on spotify: URLS
 };
 
+window.last_user_info = null;
 function get_last_user(callback) {
     // returns the last logged in username
-    chrome.storage.local.get('username',function(data) {
-        callback(data && data.username)
+    chrome.storage.local.get(function(data) {
+        window.last_user_info = data;
+        callback(data)
     })
+}
+
+
+function fetch_session_cookie(callback) {
+    chrome.cookies.get({url:'https://' + config.pagename, name: 'sps'}, callback)
 }
 
 /*
