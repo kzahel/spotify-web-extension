@@ -1,3 +1,4 @@
+console.log('RUNNING js/common.js, body:', document.body)
 var config = {
     extension_id: "gkmfagbigbkgjbbphlemmafhjabeofek", // released version
 //    pagename: "www.jstorrent.com", // debugging on a faster to load page
@@ -5,7 +6,6 @@ var config = {
     pushserver: "http://spotifyconnect.com",
     controlstream: 'spotifyconnect.com',
     website: "http://www.spotifyconnect.com",
-    injected_config_varname: '_____________config',
     hidden_div_id: '________gkmfagbigbkgjbbphlemmafhjabeofek',
     hidden_div_event_name: 'event:gkmfagbigbkgjbbphlemmafhjabeofek',
     use_desktop_spotify: false // preventDefault on spotify: URLS

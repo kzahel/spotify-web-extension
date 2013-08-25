@@ -88,7 +88,7 @@ function setup_push() {
 
                     // get spotify session cookie
 
-                var register_data = { install_id: bg.INSTALL_UUID,
+                var register_data = { install_id: bg.config.installid,
                                       device: bg.get_device(),
                                       sps: last_user_info.sps,
                                       username: last_user_info.username, 

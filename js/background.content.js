@@ -3,21 +3,22 @@ function ContentScriptConnection(port, manager) {
     this.port = port;
     this._connected = true;
     this.manager = manager;
-    port.onMessage.addListener( this.handle_message.bind(this) )
+    port.onMessage.addListener( this.on_message.bind(this) )
     port.onDisconnect.addListener( manager.handle_disconnect.bind(manager, this) )
     //this.send_to_content( { BGPID:BGPID, message: "background page received your connection. Thanks :-)", data: new Uint8Array([1,2,3,4]) } )
 }
 
 ContentScriptConnection.prototype = {
-    handle_message: function(data) {
+    on_message: function(data) {
         if (data.sender == "extension" && 
             data.injected_script == config.pagename + '.inject.js' &&
             data.extension_id == config.extension_id) {
             
             console.log('received message from main page javascript context',data);
-
             if (data.message && data.message.payload && data.message.requestid) {
                 api.handle_webpage_api_response( data.message )
+            } else if (data.message.message_type == 'publish') {
+                api.handle_publish_message( data )
             }
 
         } else {

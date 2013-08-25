@@ -9,7 +9,7 @@ function Stream(manager, installid, info) {
     this._rid = 1; // request id
     this._requests = {} // keep track of callbacks
 
-    this._url = 'ws://' + config.controlstream + ':8000/api/v0/ws/device/' + INSTALL_UUID + '/controlchannel?remotedevice=' + encodeURIComponent(installid) + '&sps=' + encodeURIComponent(last_user_info.sps) + '&authuser=' + encodeURIComponent(last_user_info.username) ; // TODO
+    this._url = 'ws://' + config.controlstream + ':8000/api/v0/ws/device/' + config.installid + '/controlchannel?remotedevice=' + encodeURIComponent(installid) + '&sps=' + encodeURIComponent(last_user_info.sps) + '&authuser=' + encodeURIComponent(last_user_info.username) ; // TODO
     this._ws = null;
 }
 Stream.prototype = {

@@ -50,6 +50,17 @@ SpotifyWebAPI.prototype = {
             callback(resp)
         }
     },
+    handle_publish_message: function(data) {
+        // handle a message that was not asked for!
+        console.log('%chandle pubsub message!','background:#f00;border:1px solid black',data.message.payload)
+
+        if (data.message && data.message.payload && data.message.payload.config) {
+            // super userful userdata!
+            chrome.storage.local.set({serverconfig:data.message.payload.config})
+        }
+
+
+    },
     handle_webpage_api_response: function(msg) {
         console.log('SpotifyWebAPI handle response!',msg)
         var callbackinfo = this._requests[msg.requestid]
@@ -110,7 +121,7 @@ PushAPI.prototype = {
         console.log("REGISTER with server",data)
 
         var xhr = new XMLHttpRequest;
-        xhr.open( 'POST', config.pushserver + '/api/v0/device/'+INSTALL_UUID+'/register', true )
+        xhr.open( 'POST', config.pushserver + '/api/v0/device/'+config.installid+'/register', true )
         var body = data
         xhr.setRequestHeader('Content-type','application/json')
         xhr.send( JSON.stringify(body) )
@@ -122,7 +133,7 @@ PushAPI.prototype = {
         // TODO -- store channel id globally?
         chrome.pushMessaging.getChannelId(false, function(resp) {
             if (resp && resp.channelId) {
-                var data = { install_id: INSTALL_UUID,
+                var data = { install_id: config.installid,
                              device: get_device(),
                              channel: resp.channelId }
                 callback(data)
@@ -146,7 +157,7 @@ PushAPI.prototype = {
         this.get_my_basic_info( function(data) {
             data.uptime = (new Date() - BG_LOAD_TIME)
             var xhr = new XMLHttpRequest;
-            xhr.open( 'POST', config.pushserver + '/api/v0/device/'+INSTALL_UUID+'/pingback', true )
+            xhr.open( 'POST', config.pushserver + '/api/v0/device/'+config.installid+'/pingback', true )
             xhr.setRequestHeader('Content-type','application/json')
             xhr.send( JSON.stringify(data) )
             xhr.onload = function(evt) {
@@ -188,7 +199,7 @@ RemoteDevices.prototype = {
         get_last_user( function(username) {
             var xhr = new XMLHttpRequest;
             xhr.open( 'GET', config.pushserver + 
-                      '/api/v0/device/' + INSTALL_UUID + '/share' +
+                      '/api/v0/device/' + config.installid + '/share' +
                       '?authuser='+ encodeURIComponent(username) +
                       '&receiver=' + encodeURIComponent(receiver) );
             xhr.setRequestHeader('Content-type','application/json')

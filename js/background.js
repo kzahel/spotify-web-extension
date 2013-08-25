@@ -3,7 +3,9 @@ var BG_LOAD_TIME = new Date
 console.assert( chrome.app.getDetails().id == config.extension_id )
 console.log("%cBackground page load!","background: #2B2; color: #00000", BGPID, new Date)
 
-window.INSTALL_UUID = null;
+var appDetails = chrome.app.getDetails()
+config.BGPID = BGPID
+config.version = appDetails.version;
 
 var logconfig = {
     injected: true,
@@ -13,27 +15,20 @@ var logconfig = {
 var content_conns = new ContentScriptConnections;
 var extension_conns = new ExtensionConnections;
 
-function fetch_or_set_uuid(cb) {
-    chrome.storage.local.get('install_uuid', function(data) {
-        if (data && data.install_uuid) {
-            INSTALL_UUID = data.install_uuid
-            console.log('retreived stored install_uuid',data)
-            cb()
-        } else {
-            // INSTALL_UUID = uuid4()
-            INSTALL_UUID = randombytes_in_base(16,32)
-            chrome.storage.local.set({'install_uuid':INSTALL_UUID}, cb)
-            console.log('set install_uuid in storage',INSTALL_UUID)
-        }
-
-    });
+function fetch_or_set_uuid() {
+    // use localStorage since it's easier/synchronous
+    var installid = localStorage['installid']
+    if (! installid) {
+        installid = randombytes_in_base(16,32)
+        localStorage['installid'] = installid;
+    }
+    return installid;
 }
 
-fetch_or_set_uuid(onready)
+
+config.installid = fetch_or_set_uuid(onready);
 
 chrome.runtime.onInstalled.addListener( function(install_data) {
-
-    // set INSTALL_UUID in chrome.storage
 
     var interactive=false
     chrome.pushMessaging.getChannelId( interactive, function(c) {
@@ -92,6 +87,7 @@ chrome.pushMessaging.onMessage.addListener( function(evt) {
 
 /*
 CSP does not allow this i dont think, which is probably good.
+actually could probably allow it from specific domains :-)
             var s = document.createElement("script");
             s.src = ...
 */          
@@ -141,20 +137,31 @@ function on_permissions_change() {
     });
 }
 
+var inject_lock = {}
+
 chrome.tabs.onUpdated.addListener( function(tabId, changeInfo, tab) {
     // set a lock... so we dont inject twice...
-    if (inject_lock) { console.log("NOT UPDATING -- have an update lock for this tab"); }
-    var inject_lock = true
+    if (inject_lock[tabId]) { console.log("NOT UPDATING -- have an update lock for this tab"); return; }
+    console.log("ACqUIRE inject lock (onUpdated)",tabId)
+    inject_lock[tabId] = true
     var updateInfo = {event:'onUpdated',changeInfo:changeInfo,tabInfo:tab.status}
     // console.log('tab change',tabId,changeInfo.status,changeInfo.url);
-    inject_content_scripts(tab, updateInfo, function() { inject_lock = false })
+    inject_content_scripts(tab, updateInfo, function() { delete inject_lock[tabId];     console.log("RELASE inject lock",tabId) })
 })
 
 chrome.tabs.query( { url: "*://"+config.pagename+"/*" }, function(tabs) {
     console.log('Found',config.pagename,tabs.length,'tabs',tabs, 'injecting...')
+
+
     var updateInfo = {pagematch:true, background_init:true}
     tabs.forEach( function(tab) {
-        inject_content_scripts(tab, updateInfo)
+	var tabId = tab.id
+	if (inject_lock[tabId]) { console.log("NOT UPDATING -- have an update lock for this tab"); return; }
+	console.log("ACqUIRE inject lock (query)",tabId)
+	inject_lock[tabId] = true
+
+        inject_content_scripts(tab, updateInfo, function(){ delete inject_lock[tabId];     console.log("RELASE inject lock",tabId)})
+
     });
 });
 
@@ -170,10 +177,56 @@ function on_new_permissions() {
     on_permissions_change()
 }
 
+
+function get_script_contents(url, callback) {
+    var xhr = new XMLHttpRequest;
+    xhr.open("GET", url, true)
+    xhr.send()
+    xhr.onload = function(evt) {
+        callback( evt.target.responseText )
+    }
+    xhr.onerror = function() { callback({error:true}) }
+}
+
+var injectable_scripts = {}
+get_script_contents( 'js/play.spotify.com.content_script.js', function(content_script){
+    injectable_scripts['play.spotify.com.content_script'] = content_script
+    get_script_contents( 'js/play.spotify.com.content_script.js', function(inject_script) {
+        injectable_scripts['play.spotify.com.inject'] = inject_script
+    })
+})
+
 function inject_content_scripts(tab, updateInfo, callback) {
+    // now calling the same function from every type of content script injection because we want it to be super snappy and happen at document_start and not wait for responses...
+
+    var inline_code = "console.log('%conUpdated!','color:#040;background:#fdd',document.head?'head':'nohead',document.body?'body':'nobody','Spotify:',window.Spotify);\n" + 
+        '(' + content_script_function.toString() + ')\n' + 
+        "("+JSON.stringify(config)+",\n" +
+            JSON.stringify(updateInfo)+',\n' +
+        JSON.stringify({spotify:spotify_inject_function.toString()}) + ');';
+
+    var inject_info = { runAt:"document_start",
+                        code: inline_code
+                      };
+
+    chrome.tabs.executeScript( tab.id, 
+                               inject_info, 
+                               function(results) {
+                                   if (results) {
+                                       var result = results[0]
+                                       console.log('content script execution', result)
+                                       callback(result)
+                                   } else {
+                                       callback(null)
+                                   }
+                               })
+}
+
+
+function inject_content_scripts_buggy(tab, updateInfo, callback) {
     /* called each time a chrome.tabs.tabUpdate is triggered (basically every single type of navigation, even sub-iframes */
 
-    chrome.tabs.executeScript( tab.id, { runAt:"document_start", code: "var updateInfo="+JSON.stringify(updateInfo)+";var BGPID = \"" + BGPID + "\";[window.location.origin,window.location.hostname,window.location.href];" }, function(results0) {
+    chrome.tabs.executeScript( tab.id, { runAt:"document_start", code: "console.log('onUpdated! - body',document.body);\nvar updateInfo="+JSON.stringify(updateInfo)+";var BGPID = \"" + BGPID + "\";[window.location.origin,window.location.hostname,window.location.href];" }, function(results0) {
 
         if (results0 === undefined) {
             // console.log('Unable to execute content script')

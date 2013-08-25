@@ -45,11 +45,11 @@
     "options_page": "options.html",
     "web_accessible_resources": [ "js/common.js", "js/play.spotify.com.inject.js", "js/all.inject.js" ],
     "permissions": ["storage","cookies","*://play.spotify.com/*", "notifications","contextMenus","pushMessaging"],
-    "optional_permissions": ["<all_urls>", "*://www.youtube.com/*"],
+    "optional_permissions": ["<all_urls>", "*://www.youtube.com/*", "tabs"],
     "manifest_version": 2,
     "background": {
-	"persistent": false,
-	"scripts": [ "js/common.js", "js/ga.js", "js/background.content.js", "js/background.extension.js", "js/api.js", "js/controlchannel.js", "js/background.js" ]
+	"persistent": true,
+	"scripts": [ "js/common.js", "js/ga.js", "js/background.content.js", "js/background.extension.js", "js/api.js", "js/controlchannel.js", "js/play.spotify.com.inject.js", "js/content.js", "js/background.js" ]
     },
     "version": "0.2.4"
 }

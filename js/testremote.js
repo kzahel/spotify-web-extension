@@ -7,11 +7,12 @@ chrome.runtime.getBackgroundPage( function(bg) {
     window.bg = bg
 
     bg.remotes.list( function(remotes) {
+        console.log("REMOTES:",remotes)
 
         //var installid = "0n523t5k1s4e3c4b5c690m28367i332g"
         window.installid = remotes.shared_devices[0].installid;
         console.log('open comm with ',
-                    remotes.shared_devices[0].deviceinfo.username,',',
+                    remotes.shared_devices[0].username,',',
                     remotes.shared_devices[0].deviceinfo)
                     
 

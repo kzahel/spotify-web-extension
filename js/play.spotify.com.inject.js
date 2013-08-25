@@ -1,4 +1,6 @@
-var inject_function = (function() {
+var spotify_inject_function = (function(data) {
+    var config = data.config
+    var updateInfo = data.updateInfo
 
     function Fucker(){}
 
@@ -32,22 +34,33 @@ var inject_function = (function() {
             this.config = config
             this.version = version
 
+            //config.features.discover = false
+            config.features.messaging = false // messaging? lame!
+            config.features.collection = false // fuck collection!!! hahahaha
+            config.features.browse = false
+
+            setTimeout( function() {
+                // custom dom div needs some time to initialize :-)
+                send_to_content_script({message_type:"publish", payload: { config: config }})
+            }, 1 )
+
             _this._actualLogin.apply(this, arguments)
-            this.init = function() {
+            // FUCK WITH IT HERE
+/*            this.init = function() {
                 debugger;
-            }
+            }*/
 
         }
+
 
         this.__defineGetter__("Login", function(){
             return MyLogin;
             // return this._actualLogin
         });
         this.__defineSetter__("Login", function(val){
-            debugger;
             _this._actualLogin = val;
         });
-
+/*
         this.__defineGetter__("App", function(){
             return _this._fakeApp
         });
@@ -55,7 +68,7 @@ var inject_function = (function() {
             _this._actualApp = val;
             CreateFakeApp()
         });
-
+*/
     }
 
     window.Spotify = new Fucker
@@ -64,12 +77,6 @@ var inject_function = (function() {
     document.onreadystatechange = function(evt) {
         //console.log('READYSTATE',evt, evt.eventPhase, window.Spotify);
     }
-
-
-    var injected_config_varname = '_____________config';
-    var config = window[injected_config_varname];
-    console.assert(config) // this means the injection script ran twice! bad! huh?
-    delete window[injected_config_varname];
 
     // MAKE SURE IN SYNC WITH COMMON.js
     function get_hidden_div() {
@@ -90,10 +97,9 @@ var inject_function = (function() {
         evt.initEvent(config.hidden_div_event_name, false, false);
         var d = get_hidden_div()
         //d.innerText = JSON.stringify(msg)
+        console.log(["DISPATCH CUSTOM DOM EVENNT",msg,source])
         d.dispatchEvent(evt)
     }
-
-
 
     function on_receive_message_from_content_script(msg) {
         var data = msg.detail;
@@ -127,17 +133,12 @@ var inject_function = (function() {
     }
 
     function send_to_content_script(msg) {
-
         var tosend = {sender:"extension", 
                       message: msg,
                       injected_script: config.pagename + '.inject.js', 
                       extension_id: config.extension_id}
 
         custom_dom_event(tosend, 'injected_script')
-
-        // too many side effects this way
-        //window.postMessage([tosend],
-        //                   window.location.origin)
     }
 
     function respond_to_api_message(request, payload) {
