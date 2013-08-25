@@ -39,6 +39,18 @@ chrome.runtime.getBackgroundPage( function(bg) {
 
 
 function bind_others() {
+    var btn = document.querySelector('#uri');
+    btn.addEventListener('keypress', function(evt){
+        console.log(evt.keyCode)
+        if (evt.keyCode == 13) {
+            console.log("ENTER")
+            remote_api.do_player_command( {method:'openUri', arguments:{uri:evt.target.innerText}}, function(response) {
+                console.log('did player command', response)
+            })
+        }
+    });
+
+
     var btn = document.querySelector('#get-info');
     btn.addEventListener('click', function(){
         populate_album_info()
@@ -123,6 +135,10 @@ function populate_album_info(cb) {
 
                     for (var key in response.playerState) {
                         h.push(key + ' = ' + response.playerState[key] + '<br />')
+                    }
+
+                    if (response.info && response.info.context && response.info.context.uri) {
+                        h.push('context = ' + response.info.context.uri + '<br />')
                     }
 
                     if (response.playerState.duration) {

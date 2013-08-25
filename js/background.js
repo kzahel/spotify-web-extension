@@ -13,9 +13,6 @@ var logconfig = {
 var content_conns = new ContentScriptConnections;
 var extension_conns = new ExtensionConnections;
 
-
-
-
 function fetch_or_set_uuid(cb) {
     chrome.storage.local.get('install_uuid', function(data) {
         if (data && data.install_uuid) {
@@ -106,7 +103,6 @@ CSP does not allow this i dont think, which is probably good.
     }
 })
 
-
 chrome.runtime.onConnect.addListener( function(port) {
     if (port.sender.tab) {
         content_conns.handle_connection(port)
@@ -114,6 +110,7 @@ chrome.runtime.onConnect.addListener( function(port) {
         extension_conns.handle_connection(port)
     }
 })
+
 
 chrome.commands.onCommand.addListener(function(command) {
     console.log('got keyboard command',command);
@@ -144,10 +141,17 @@ function on_permissions_change() {
     });
 }
 
-on_permissions_change()
+chrome.tabs.onUpdated.addListener( function(tabId, changeInfo, tab) {
+    // set a lock... so we dont inject twice...
+    if (inject_lock) { console.log("NOT UPDATING -- have an update lock for this tab"); }
+    var inject_lock = true
+    var updateInfo = {event:'onUpdated',changeInfo:changeInfo,tabInfo:tab.status}
+    // console.log('tab change',tabId,changeInfo.status,changeInfo.url);
+    inject_content_scripts(tab, updateInfo, function() { inject_lock = false })
+})
 
 chrome.tabs.query( { url: "*://"+config.pagename+"/*" }, function(tabs) {
-    console.log('Found',config.pagename,tabs.length,'tabs',tabs)
+    console.log('Found',config.pagename,tabs.length,'tabs',tabs, 'injecting...')
     var updateInfo = {pagematch:true, background_init:true}
     tabs.forEach( function(tab) {
         inject_content_scripts(tab, updateInfo)
@@ -166,16 +170,18 @@ function on_new_permissions() {
     on_permissions_change()
 }
 
-function inject_content_scripts(tab, updateInfo) {
+function inject_content_scripts(tab, updateInfo, callback) {
     /* called each time a chrome.tabs.tabUpdate is triggered (basically every single type of navigation, even sub-iframes */
 
-    chrome.tabs.executeScript( tab.id, { code: "var updateInfo="+JSON.stringify(updateInfo)+";var BGPID = \"" + BGPID + "\";[window.location.origin,window.location.hostname,window.location.href];" }, function(results0) {
+    chrome.tabs.executeScript( tab.id, { runAt:"document_start", code: "var updateInfo="+JSON.stringify(updateInfo)+";var BGPID = \"" + BGPID + "\";[window.location.origin,window.location.hostname,window.location.href];" }, function(results0) {
 
         if (results0 === undefined) {
             // console.log('Unable to execute content script')
             // no permission to execute content scripts
             return
         } else {
+            console.log('%cinjected content script into tab '+ tab.id, 'background:#f4f');
+
             var tabinfo = results0[0];
             //console.log('content script returns info:',tabinfo);
 
@@ -183,30 +189,40 @@ function inject_content_scripts(tab, updateInfo) {
             var hostname = tabinfo[1]
             var href = tabinfo[2]
 
-            chrome.tabs.executeScript( tab.id,  { file: 'js/common.js' }, function(results1) {
+            // all this async executeScript shit should be joined into one executeScript...
+
+            chrome.tabs.executeScript( tab.id,  { runAt:"document_start", file: 'js/common.js' }, function(results1) {
                 if (hostname == config.pagename) {
-                    chrome.tabs.executeScript( tab.id, { file: 'js/'+config.pagename+'.content_script.js' }, function(resultsa) {
-                        if (resultsa[0][0].match("already executed")) {
-                            //console.log(config.pagename,'content_script: already injected')
-                        } else {
-                            console.log(config.pagename,'content_script injected', resultsa);
-                        }
+
+                    chrome.tabs.executeScript( tab.id, { runAt:"document_start", file: 'js/'+config.pagename+'.inject.js' }, function(resultsaa) {
+                        chrome.tabs.executeScript( tab.id, { runAt:"document_start", file: 'js/'+config.pagename+'.content_script.js' }, function(resultsa) {
+                            if (resultsa[0][0].match("already executed")) {
+                                //console.log(config.pagename,'content_script: already injected')
+                            } else {
+                                console.log(config.pagename,'content_script injected', resultsa);
+                            }
+
+                            if (callback){
+                                callback()
+                            } else {
+                                console.log("No callback for pageName executeScript chain in background.js")
+                            }
+
+                        })
                     })
                 } else {
+
+                    // really annoying that this is showing console.error
+
                     chrome.tabs.executeScript( tab.id, { file: 'js/all.content_script.js' }, function(resultsb) {
                         console.log('all.content_script injected', resultsb)
+                        callback()
                     })
                 }
             })
         }
     })
 }
-
-chrome.tabs.onUpdated.addListener( function(tabId, changeInfo, tab) {
-    var updateInfo = {event:'onUpdated',changeInfo:changeInfo,tabInfo:tab.status}
-    // console.log('tab change',tabId,changeInfo.status,changeInfo.url);
-    inject_content_scripts(tab, updateInfo)
-})
 
 
 chrome.runtime.onMessage.addListener( function(msg) {

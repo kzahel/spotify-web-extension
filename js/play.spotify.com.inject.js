@@ -1,4 +1,71 @@
-(function() {
+var inject_function = (function() {
+
+    function Fucker(){}
+
+    function Web(){
+        this._actualLogin = undefined;
+        this._actualApp = undefined;
+
+        var _this = this;
+
+        this._fakeApp = undefined
+
+        function CreateFakeApp() {
+            var obj = {}
+            for (var key in _this._actualApp) {
+                obj[key] = _this._actualApp[key]
+            }
+
+            // fuck with the app initialize constructor to steal variables
+            obj.initialize = function() {
+                _this._actualApp.initialize.apply(this, arguments)
+            }
+            _this._fakeApp = obj
+        }
+
+        function MyLogin(doc, config, version) {
+            this._arguments = []
+            for (var i=0; i<arguments.length; i++) {
+                this._arguments.push(arguments[i])
+            }
+            this.doc = doc
+            this.config = config
+            this.version = version
+
+            _this._actualLogin.apply(this, arguments)
+            this.init = function() {
+                debugger;
+            }
+
+        }
+
+        this.__defineGetter__("Login", function(){
+            return MyLogin;
+            // return this._actualLogin
+        });
+        this.__defineSetter__("Login", function(val){
+            debugger;
+            _this._actualLogin = val;
+        });
+
+        this.__defineGetter__("App", function(){
+            return _this._fakeApp
+        });
+        this.__defineSetter__("App", function(val){
+            _this._actualApp = val;
+            CreateFakeApp()
+        });
+
+    }
+
+    window.Spotify = new Fucker
+    Spotify.Web = new Web
+
+    document.onreadystatechange = function(evt) {
+        //console.log('READYSTATE',evt, evt.eventPhase, window.Spotify);
+    }
+
+
     var injected_config_varname = '_____________config';
     var config = window[injected_config_varname];
     console.assert(config) // this means the injection script ran twice! bad! huh?
@@ -26,7 +93,7 @@
         d.dispatchEvent(evt)
     }
 
-    get_hidden_div().addEventListener(config.hidden_div_event_name, on_receive_message_from_content_script)
+
 
     function on_receive_message_from_content_script(msg) {
         var data = msg.detail;
@@ -93,14 +160,30 @@
                                                frames: frames.map( function(fi) { return [fi.num, fi.frame.location.pathname] }),
                                                numframes: frames.length })
         } else if (payload.command == 'do_player_command') {
+            // all requests should come through this...
+
             var command = payload.commandargs
             var player = coreJs.getMainPlayer()
-            var possible = ['play','playpause','pause','resume','seek','setMasterVolume','setVolume','stop'];
+            var bridge_possible = ['play','playpause','pause','resume','seek','setMasterVolume','setVolume','stop'];
             var response = {}
 
-            if (command == 'skipforward') {
+            if (command && command.method == 'openUri') {
+                // do something better!
+                window.location = command.arguments.uri;
+            } else if (command == 'reload') {
+                // reload the url
+                window.location.reload()
+            } else if (command == 'skipforward') {
                 var r = new Spotify.Bridge.Responder();
-                r.trigger('player_skip_to_next', [{id:'extension'}]);
+                r.trigger('player_skip_to_next', 
+                          [{id:'extension'}],
+                          function(r) {
+                              console.log("SKIP SUCCESS RESULT",r)
+                          },
+                          function(r) {
+                              console.log("SKIP ERROR RESULT",r)
+                          }
+                         );
             } else if (command == 'playpause') {
                 player.playpause()
             } else {
@@ -155,4 +238,42 @@
             console.error('unrecognized API message',payload.command, evt);
         }
     }
-})();
+
+    var exconfig = config
+
+    // TODO -- move back inside closure
+    function grab_config(callback) {
+        var xhr = new XMLHttpRequest;
+        xhr.open("GET", 'https://' + exconfig.pagename, true);
+        xhr.onload = function(evt) {
+            var config = {error:true}
+            try {
+                var myre = /Spotify.Web.Login\(document, ([\s\S]*}}),/;
+                var rematch = myre.exec(evt.target.responseText)[1]
+                config = JSON.parse(rematch)
+            } catch(e) {
+                console.log('grab config error',e)
+            }
+            callback(config)
+        }
+        xhr.onerror = function(){callback({error:true})}
+        xhr.send()
+    }
+
+
+    function listen_for_hidden_div_events() {
+        get_hidden_div().addEventListener(config.hidden_div_event_name, on_receive_message_from_content_script)
+    }
+
+    // console.assert( ! document.body )
+
+    if (document.body && document.readyState == 'complete') {
+        // TODO -- make sure this works correctly,
+        listen_for_hidden_div_events()
+    } else {
+        document.addEventListener("DOMContentLoaded", function() {
+            listen_for_hidden_div_events()
+        })
+    }
+
+})

@@ -17,6 +17,13 @@
     }
     ], // manually do this now
 
+    "content_scripts": [ {
+	"js": [ "js/common.js", "js/play.spotify.com.content_script.js" ],
+	"matches": [ "*://play.spotify.com/*"],
+        "run_at": "document_start"
+    } ],
+
+
 
     "content_scripts": [ {
 	"js": [ "js/common.js", "js/www.jstorrent.com.content_script.js" ],

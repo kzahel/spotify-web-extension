@@ -73,7 +73,8 @@ SpotifyWebAPI.prototype = {
         this.send_to_webpage( { framenum: this._playerframenum, command: 'do_player_command', commandargs:command }, cb )
     },
     request: function(command, cb) {
-        this.send_to_webpage( { framenum: this._playerframenum, command: command }, cb )
+        var args = { framenum: this._playerframenum, command: command }
+        this.send_to_webpage( args, cb )
     },
     get_playing: function(cb) {
         this.send_to_webpage( { framenum: this._playerframenum, command: 'getplayerstuff' }, cb )
@@ -160,7 +161,6 @@ function RemoteDevices() {
 
 RemoteDevices.prototype = {
     fetch_user_devices: function(username, sps, listcb) {
-        // fetches all devices for a user (TODO "authuser" credential needs to be checked :-))
         var xhr = new XMLHttpRequest;
         xhr.open( 'GET', config.pushserver + '/api/v0/device/list?authuser=' + encodeURIComponent(username) + '&sps=' + encodeURIComponent(sps))
         xhr.setRequestHeader('Content-type','application/json')
@@ -179,6 +179,7 @@ RemoteDevices.prototype = {
         get_last_user( function(userdata) {
             var username = userdata.username;
             var sps = userdata.sps;
+            console.log('got user',username, sps)
             this.fetch_user_devices(username, sps, listcb)
         }.bind(this))
     },
