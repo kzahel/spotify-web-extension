@@ -46,14 +46,39 @@ function restore_options() {
 //document.addEventListener('DOMContentLoaded', restore_options);
 //document.querySelector('#save').addEventListener('click', save_options);
 
-function bind_channel_button() {
-    var btn = document.querySelector('#setup-channel');
-    btn.addEventListener('click', function(event) {
+
+
+function onchannelclick(interactive) {
         get_background( function() {
+
             bg.api.get_user(function(user) {
+
+                bg.remotes.list( function(devices) {
+                    console.log("remote devices",devices)
+
+                    lines = ["<ul>"]
+
+                    devices.own_devices.forEach( function(d) {
+                        if (d.installid != bg.config.installid) {
+                            lines.push('<li><a href="testremote.html?installid='+encodeURIComponent(d.installid)+'">'+d.username + ' - ('+d.deviceinfo+')</a></li>');
+                        }
+                    })
+
+
+                    devices.shared_devices.forEach( function(d) {
+                        if (d.installid != bg.config.installid) {
+                            lines.push('<li><a href="testremote.html?installid='+encodeURIComponent(d.installid)+'">'+d.username + ' - ('+d.deviceinfo+')</a></li>');
+                        }
+                    })
+
+                    lines.push("</ul>")
+                    document.getElementById("remotes").innerHTML = lines.join('<br />')
+                    
+                })
+
                 fetch_session_cookie( function(spcookie) {
                     if (user) {
-                        setup_push()
+                        setup_push(interactive)
                         // store this user in local settings...
                         var userinfo = {'username':user.username,'sps':spcookie.value}
 
@@ -66,7 +91,13 @@ function bind_channel_button() {
 
             });
         });
-    })
+}
+
+onchannelclick(false)
+
+function bind_channel_button() {
+    var btn = document.querySelector('#setup-channel');
+    btn.addEventListener('click', function(){onchannelclick(true)})
 }
 
 function notify(msg) {
@@ -77,12 +108,16 @@ function notify(msg) {
 }
 
 
-function setup_push() {
+function setup_push(interactive) {
     // interactive = true
-    chrome.pushMessaging.getChannelId(true, function(resp) {
+    chrome.pushMessaging.getChannelId(interactive, function(resp) {
         console.log('channel setup resp',resp)
 
         if (resp && resp.channelId) {
+
+            document.getElementById('setup-channel-info').innerText = 'Channel is already setup!';
+            document.getElementById('setup-channel').disabled = 'disabled'
+
             notify('channel:'+JSON.stringify(resp) + ', username:'+last_user_info.username )
             get_background( function() {
 
@@ -173,10 +208,23 @@ function bind_all_permission_upgrade() {
     });
 }
 
+function bind_share(){
+    document.getElementById('share-username').addEventListener('keypress', function(evt) {
+        if (evt.keyCode == 13) {
+            var username = evt.target.value
+            evt.target.value = ''
 
+            bg.remotes.allow_access(localStorage['username'], username,  function(r) {
+                document.getElementById('share-username-info').innerText = JSON.stringify(r)
+            })
+
+        }
+    })
+}
 document.addEventListener("DOMContentLoaded", function() {
     bind_all_permission_upgrade()
     bind_youtube_permission_upgrade()
+    bind_share()
     bind_channel_button()
     track_button_clicks()
 })

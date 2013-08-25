@@ -57,6 +57,7 @@ SpotifyWebAPI.prototype = {
         if (data.message && data.message.payload && data.message.payload.config) {
             // super userful userdata!
             chrome.storage.local.set({serverconfig:data.message.payload.config})
+            localStorage["username"] = data.message.payload.config.username // hack
         }
 
 

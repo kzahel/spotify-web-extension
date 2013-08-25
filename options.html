@@ -15,6 +15,10 @@
   <div id="info-result"></div>
 
 <hr />
+
+<i>Welcome! This extension is in active development, so please check back here soon for updates!</i>
+
+<hr/>
 <div>This extension can help your browser open "spotify:" links (see <a href="http://news.spotify.com/us/2008/01/14/linking-to-spotify/">linking to spotify</a>), but requires you grant extra permissions.</div>
 
     <button id="add-permissions">Grant perission to handle spotify: links</button>
@@ -31,16 +35,29 @@
 
 <hr />
 
+
+<div style="margin-left:20px">
+<h2>Experimental Features</h2>
 <div>
 Remote access: setup a remote access channel to this computer. <i>This will require you to sign in with google, if you're not already signed in</i>.
 
-
 </div>
 
-<button id="setup-channel">setup channel</button>
+<button id="setup-channel">setup channel</button><span id="setup-channel-info"></span>
 
 <hr />
 
+
+allow remote access to this spotify username: <input type="text" id="share-username" />
+<span id="share-username-info"></span>
+
+
+<hr />
+
+My remote devices:
+<div id="remotes"></div>
+<hr />
+</div>
 
 <div>Comments, suggestions? Please leave them on <a target="_blank" href="https://github.com/kzahel/spotify-web-extension">github project page</a>
 

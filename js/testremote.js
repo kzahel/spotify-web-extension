@@ -10,11 +10,18 @@ chrome.runtime.getBackgroundPage( function(bg) {
         console.log("REMOTES:",remotes)
 
         //var installid = "0n523t5k1s4e3c4b5c690m28367i332g"
+
         window.installid = remotes.shared_devices[0].installid;
+
+        if (window.location.search) {
+            var stripped = window.location.search.slice(1,window.location.search.length)
+            window.installid = decodeURIComponent(stripped.split('=')[1])
+        }
+/*
         console.log('open comm with ',
                     remotes.shared_devices[0].username,',',
                     remotes.shared_devices[0].deviceinfo)
-                    
+  */                  
 
         bg.controlchannels.ensure_open_for(installid, {initiator:true}, function(d){
             console.log('remote connected',d)

@@ -277,6 +277,9 @@ function inject_content_scripts_buggy(tab, updateInfo, callback) {
     })
 }
 
+function get_username() {
+    return localStorage['username']
+}
 
 chrome.runtime.onMessage.addListener( function(msg) {
     // for listening all.content script 
