@@ -145,6 +145,7 @@ function setup_push(interactive) {
 
 function bind_youtube_permission_upgrade() {
     var btn = document.querySelector('#add-permissions-youtube');
+    if (!btn){return;}
     btn.addEventListener('click', function(event) {
 	chrome.permissions.request({
 	    permissions: [],
@@ -177,6 +178,7 @@ function bind_youtube_permission_upgrade() {
 
 function bind_all_permission_upgrade() {
     var btn = document.querySelector('#add-permissions');
+    if (!btn){return;}
 
     btn.addEventListener('click', function(event) {
 
